@@ -1756,7 +1756,134 @@ textarea { resize: vertical; }
   color:var(--text); align-self:flex-end; border-radius:12px 4px 12px 12px;
 }
 .chat-msg.typing { opacity:.6; font-style:italic; }
+/* ── Smart Filter System ── */
+.sf-bar {
+  display:flex; align-items:center; gap:.5rem;
+  padding:.65rem .9rem; margin-bottom:.75rem;
+  background:var(--bg2); border:1px solid var(--glass-border);
+  border-radius:12px; flex-wrap:wrap;
+}
+.sf-search-wrap {
+  display:flex; align-items:center; gap:.4rem;
+  background:var(--bg3); border:1px solid var(--glass-border);
+  border-radius:8px; padding:.3rem .65rem; flex:1; min-width:180px; max-width:280px;
+  transition:border-color .15s;
+}
+.sf-search-wrap:focus-within { border-color:rgba(94,92,230,.5); }
+.sf-search-wrap svg { color:var(--text-dim); flex-shrink:0; }
+.sf-search-wrap input {
+  background:none; border:none; outline:none; color:var(--text);
+  font-size:.8rem; font-family:'Inter',sans-serif; width:100%;
+}
+.sf-search-wrap input::placeholder { color:var(--text-dim); }
+.sf-sort-wrap {
+  display:flex; align-items:center; gap:.35rem;
+  background:var(--bg3); border:1px solid var(--glass-border);
+  border-radius:8px; padding:.3rem .65rem; cursor:pointer;
+  font-size:.78rem; color:var(--text-muted); transition:border-color .15s;
+}
+.sf-sort-wrap:hover { border-color:rgba(94,92,230,.4); }
+.sf-sort-wrap select {
+  background:none; border:none; outline:none; color:var(--text);
+  font-size:.78rem; font-family:'Inter',sans-serif; cursor:pointer;
+}
+.sf-more-btn {
+  display:flex; align-items:center; gap:.35rem;
+  background:var(--bg3); border:1px solid var(--glass-border);
+  border-radius:8px; padding:.3rem .75rem; font-size:.78rem;
+  color:var(--text-muted); cursor:pointer; transition:all .15s;
+  white-space:nowrap;
+}
+.sf-more-btn:hover, .sf-more-btn.active {
+  border-color:rgba(94,92,230,.5); color:var(--text);
+  background:rgba(94,92,230,.08);
+}
+.sf-more-btn .sf-badge {
+  background:var(--primary); color:#fff; border-radius:10px;
+  padding:0 .4rem; font-size:.65rem; font-weight:700; min-width:16px;
+  text-align:center; display:none;
+}
+.sf-more-btn.has-active .sf-badge { display:inline-block; }
+.sf-panel {
+  display:none; flex-wrap:wrap; gap:.5rem; align-items:center;
+  padding:.65rem .9rem; margin-bottom:.75rem;
+  background:var(--bg2); border:1px solid rgba(94,92,230,.2);
+  border-radius:10px; animation:sfPanelIn .15s ease;
+}
+.sf-panel.open { display:flex; }
+@keyframes sfPanelIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+.sf-panel select, .sf-panel input[type="number"] {
+  background:var(--bg3); border:1px solid var(--glass-border);
+  border-radius:7px; padding:.3rem .6rem; color:var(--text);
+  font-size:.78rem; font-family:'Inter',sans-serif; outline:none;
+  cursor:pointer; transition:border-color .15s;
+}
+.sf-panel select:focus, .sf-panel input[type="number"]:focus {
+  border-color:rgba(94,92,230,.5);
+}
+.sf-panel label {
+  font-size:.72rem; color:var(--text-dim); display:flex;
+  align-items:center; gap:.3rem; cursor:pointer;
+}
+.sf-chips {
+  display:flex; flex-wrap:wrap; gap:.35rem;
+  margin-bottom:.5rem; min-height:0;
+}
+.sf-chip {
+  display:inline-flex; align-items:center; gap:.3rem;
+  background:rgba(94,92,230,.12); border:1px solid rgba(94,92,230,.3);
+  color:var(--primary); border-radius:20px;
+  padding:.2rem .55rem; font-size:.72rem; font-weight:500;
+  animation:msgIn .15s ease;
+}
+.sf-chip button {
+  background:none; border:none; color:var(--primary); cursor:pointer;
+  font-size:.7rem; padding:0; line-height:1; opacity:.7;
+}
+.sf-chip button:hover { opacity:1; }
+.sf-count {
+  margin-left:auto; font-size:.72rem; color:var(--text-dim);
+  white-space:nowrap;
+}
+.ufilter-bar {
+  display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+  padding:.75rem 1rem; margin-bottom:1rem;
+  background:var(--bg2); border:1px solid var(--glass-border);
+  border-radius:12px;
+}
+.ufilter-bar input[type="text"], .ufilter-bar select {
+  background:var(--bg3); border:1px solid var(--glass-border);
+  border-radius:8px; padding:.3rem .65rem; color:var(--text);
+  font-size:.78rem; font-family:'Inter',sans-serif; outline:none;
+  transition:border-color .15s;
+}
+.ufilter-bar input[type="text"]:focus, .ufilter-bar select:focus {
+  border-color:rgba(94,92,230,.5);
+}
+.ufilter-bar input[type="text"] { min-width:160px; flex:1; max-width:260px; }
+.ufilter-bar select { cursor:pointer; }
+.ufilter-count {
+  margin-left:auto; font-size:.72rem; color:var(--text-dim);
+  white-space:nowrap; padding:.2rem .55rem;
+  background:var(--glass); border-radius:6px;
+}
+.ufilter-reset {
+  font-size:.72rem; padding:.25rem .6rem; border-radius:6px;
+  background:none; border:1px solid var(--glass-border);
+  color:var(--text-muted); cursor:pointer; transition:all .15s;
+  white-space:nowrap;
+}
+.ufilter-reset:hover { border-color:var(--danger); color:var(--danger); }
 /* ── Chat improvements ── */
+#chat-mic-btn.listening { background:rgba(239,68,68,.15) !important; border-color:var(--danger) !important; color:var(--danger) !important; animation:pulse 1s infinite; }
+#chat-voice-bar { display:none; }
+#chat-voice-bar.active { display:flex !important; }
+.chat-chart-bar { height:8px; border-radius:4px; background:linear-gradient(90deg,var(--primary),#a78bfa); transition:width .3s; }
+.chat-week-card { background:rgba(99,102,241,.08); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:.75rem; margin-top:.5rem; }
+.chat-week-task { display:flex; align-items:flex-start; gap:.5rem; padding:.4rem 0; border-bottom:1px solid var(--glass-border); }
+.chat-week-task:last-child { border-bottom:none; }
+.chat-week-num { font-size:.75rem; font-weight:700; color:var(--primary); min-width:18px; }
+.chat-proactive { background:rgba(16,217,124,.07); border:1px solid rgba(16,217,124,.25); border-radius:10px; padding:.7rem .9rem; }
 .chat-msg.bot a { color:var(--primary); }
 .chat-msg.bot code { background:rgba(99,102,241,.12);padding:.1rem .35rem;border-radius:4px;font-size:.8rem;font-family:monospace; }
 .chat-msg.bot strong { color:var(--text); }
@@ -3630,53 +3757,90 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
       </form>
     </div>
 
-    <!-- Filters + Search -->
-    <div class="glass-panel" style="margin-bottom:1rem;padding:1rem 1.5rem">
-      <div class="filter-bar">
-        <div class="search-box">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="lead-search" placeholder="Buscar por nombre, empresa, notas..." oninput="renderLeads()">
-        </div>
-        <select id="filter-segment" onchange="renderLeads()">
-          <option value="">Todos los segmentos</option>
-          <option value="Oficinas">Oficinas</option>
-          <option value="Retail">Retail</option>
-          <option value="Industrial">Industrial</option>
-          <option value="Hoteles">Hotelería</option>
-          <option value="Cultural">Cultural</option>
-          <option value="Deportivo">Deportivo</option>
-          <option value="Comercial">Comercial</option>
-          <option value="Educativo">Educativo</option>
-        </select>
-        <select id="filter-status" onchange="renderLeads()">
-          <option value="">Todos los estados</option>
-          <option value="Pendiente">Pendiente</option>
-          <option value="Contactado">Contactado</option>
-          <option value="Respuesta del cliente">Respuesta del cliente</option>
-          <option value="Visita">Visita</option>
-          <option value="Entrega de presupuesto">Entrega de presupuesto</option>
-          <option value="Cerrado">Cerrado</option>
-          <option value="No interesa">No interesa</option>
-        </select>
-        <select id="filter-source" onchange="renderLeads()">
-          <option value="">Todos los orígenes</option>
-          <option value="search">🔵 Búsqueda</option>
-          <option value="import">🟡 Importado</option>
-          <option value="manual">🟢 Manual</option>
-        </select>
-        <select id="sort-leads" onchange="renderLeads()">
-          <option value="score">Ordenar: Score</option>
-          <option value="date">Ordenar: Fecha</option>
-          <option value="company">Ordenar: Empresa</option>
-          <option value="next_contact">Ordenar: Próximo contacto</option>
-          <option value="days_status">Ordenar: Días en estado</option>
-        </select>
-        <button class="btn-outline btn-sm" onclick="exportFilteredData()">Exportar vista</button>
+    <!-- Filters + Search — Smart Filter System -->
+    <div id="leads-sf-bar" class="sf-bar">
+      <div class="sf-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="lead-search" placeholder="Buscar empresa, email, notas, sector..." oninput="renderLeads(); sfUpdateChips('leads')">
       </div>
-      <div id="leads-count-bar" style="margin-top:.5rem;font-size:.72rem;color:var(--text-dim)"></div>
+      <div class="sf-sort-wrap">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        <select id="sort-leads" onchange="renderLeads()">
+          <option value="score">↓ Score</option>
+          <option value="date">↓ Más recientes</option>
+          <option value="company">A→Z Empresa</option>
+          <option value="next_contact">↑ Próximo contacto</option>
+          <option value="days_status">↓ Días en estado</option>
+          <option value="rating">↓ Rating Google</option>
+          <option value="name">A→Z Nombre</option>
+        </select>
+      </div>
+      <button class="sf-more-btn" id="leads-more-btn" onclick="sfTogglePanel('leads')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filtros
+        <span class="sf-badge" id="leads-sf-badge">0</span>
+      </button>
+      <button onclick="exportFilteredData()" style="margin-left:auto;background:none;border:1px solid var(--glass-border);border-radius:7px;padding:.3rem .65rem;font-size:.75rem;color:var(--text-muted);cursor:pointer" title="Exportar vista filtrada">⬇</button>
+      <span class="sf-count" id="leads-count-bar"></span>
     </div>
 
-    <!-- Bulk Actions Bar -->
+    <!-- Leads advanced filters panel -->
+    <div class="sf-panel" id="leads-sf-panel">
+      <select id="filter-segment" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Todos los sectores</option>
+        <option value="Oficinas">Oficinas</option>
+        <option value="Retail">Retail</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Hoteles">Hotelería</option>
+        <option value="Cultural">Cultural</option>
+        <option value="Deportivo">Deportivo</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Educativo">Educativo</option>
+      </select>
+      <select id="filter-status" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Todos los estados</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Contactado">Contactado</option>
+        <option value="Respuesta del cliente">Respuesta del cliente</option>
+        <option value="Visita">Visita</option>
+        <option value="Entrega de presupuesto">Entrega de presupuesto</option>
+        <option value="Cerrado">Cerrado</option>
+        <option value="No interesa">No interesa</option>
+      </select>
+      <select id="filter-source" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Todos los orígenes</option>
+        <option value="search">🔵 Búsqueda</option>
+        <option value="import">🟡 Importado</option>
+        <option value="manual">🟢 Manual</option>
+      </select>
+      <select id="filter-score-min" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Score mín.</option>
+        <option value="25">Score 25+</option>
+        <option value="50">Score 50+</option>
+        <option value="70">Score 70+</option>
+        <option value="85">Score 85+</option>
+      </select>
+      <select id="filter-date-range" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Cualquier fecha</option>
+        <option value="today">Añadido hoy</option>
+        <option value="week">Esta semana</option>
+        <option value="month">Este mes</option>
+        <option value="3months">Últimos 3 meses</option>
+      </select>
+      <select id="filter-next-contact" onchange="renderLeads(); sfUpdateChips('leads')">
+        <option value="">Cualquier seguimiento</option>
+        <option value="overdue">⚠️ Vencidos</option>
+        <option value="today">📅 Hoy</option>
+        <option value="week">Esta semana</option>
+        <option value="none">Sin fecha</option>
+      </select>
+      <button onclick="resetLeadsFilters()" class="sf-more-btn" style="color:var(--danger);border-color:rgba(239,68,68,.3)">✕ Limpiar todo</button>
+    </div>
+
+    <!-- Active filter chips -->
+    <div class="sf-chips" id="leads-sf-chips"></div>
+
+        <!-- Bulk Actions Bar -->
     <div id="bulk-bar" role="toolbar">
       <span id="bulk-count">0 seleccionados</span>
       <button class="bulk-btn" onclick="bulkChangeStatus('Contactado')">→ Contactado</button>
@@ -3718,7 +3882,53 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
     <div class="page-header">
       <div><h1>Pipeline Kanban</h1><p class="page-sub">Arrastra los leads entre columnas para actualizar su estado</p></div>
     </div>
-    <div class="kanban-board" id="kanban-board">
+    <!-- Kanban Smart Filter -->
+    <div class="sf-bar">
+      <div class="sf-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="kanban-search" placeholder="Buscar empresa, nombre..." oninput="renderKanban(); sfUpdateChips('kanban')">
+      </div>
+      <div class="sf-sort-wrap">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        <select id="kanban-sort" onchange="renderKanban()">
+          <option value="score">↓ Score</option>
+          <option value="company">A→Z Empresa</option>
+          <option value="days">↓ Días en estado</option>
+          <option value="next_contact">↑ Próximo contacto</option>
+          <option value="budget">↓ Presupuesto</option>
+        </select>
+      </div>
+      <button class="sf-more-btn" id="kanban-more-btn" onclick="sfTogglePanel('kanban')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filtros
+        <span class="sf-badge" id="kanban-sf-badge">0</span>
+      </button>
+      <span class="sf-count" id="kanban-filter-count"></span>
+    </div>
+    <div class="sf-panel" id="kanban-sf-panel">
+      <select id="kanban-filter-seg" onchange="renderKanban(); sfUpdateChips('kanban')">
+        <option value="">Todos los sectores</option>
+        <option value="Oficinas">Oficinas</option>
+        <option value="Retail">Retail</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Hoteles">Hotelería</option>
+        <option value="Cultural">Cultural</option>
+        <option value="Deportivo">Deportivo</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Educativo">Educativo</option>
+      </select>
+      <select id="kanban-filter-score" onchange="renderKanban(); sfUpdateChips('kanban')">
+        <option value="">Cualquier score</option>
+        <option value="70">Score 70+</option>
+        <option value="50">Score 50+</option>
+        <option value="25">Score 25+</option>
+      </select>
+      <label><input type="checkbox" id="kanban-filter-overdue" onchange="renderKanban(); sfUpdateChips('kanban')" style="accent-color:var(--danger)"> ⚠️ Solo vencidos</label>
+      <button onclick="resetKanbanFilters()" class="sf-more-btn" style="color:var(--danger);border-color:rgba(239,68,68,.3)">✕ Limpiar</button>
+    </div>
+    <div class="sf-chips" id="kanban-sf-chips"></div>
+
+        <div class="kanban-board" id="kanban-board">
       <div class="kanban-col" id="col-Pendiente" ondragover="event.preventDefault()" ondrop="dropLead(event,'Pendiente')">
         <div class="kanban-col-header kanban-orange">
           <span>Pendiente</span><span class="kanban-count" id="cnt-Pendiente">0</span><span class="kanban-col-value" id="val-Pendiente"></span>
@@ -3954,6 +4164,44 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
           </div>
         </div>
 
+        <!-- Search Smart Filter -->
+        <div id="search-sf-wrap" style="display:none">
+          <div class="sf-bar" style="margin-top:.75rem">
+            <div class="sf-search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input type="text" id="search-results-text" placeholder="Filtrar por nombre, email, web..." oninput="applyAdvancedFilters(); sfUpdateChips('search')">
+            </div>
+            <div class="sf-sort-wrap">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+              <select id="search-results-sort" onchange="applyAdvancedFilters()">
+                <option value="default">Orden original</option>
+                <option value="rating_desc">↓ Mayor rating</option>
+                <option value="reviews_desc">↓ Más reseñas</option>
+                <option value="name_asc">A→Z Nombre</option>
+                <option value="distance_asc">↑ Más cercano</option>
+              </select>
+            </div>
+            <button class="sf-more-btn" id="search-more-btn" onclick="sfTogglePanel('search')">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+              Filtros
+              <span class="sf-badge" id="search-sf-badge">0</span>
+            </button>
+            <span class="sf-count" id="search-results-count"></span>
+          </div>
+          <div class="sf-panel" id="search-sf-panel">
+            <select id="search-results-has" onchange="applyAdvancedFilters(); sfUpdateChips('search')">
+              <option value="">Cualquier dato</option>
+              <option value="email">✉️ Con email</option>
+              <option value="phone">📞 Con teléfono</option>
+              <option value="web">🌐 Con web</option>
+              <option value="social">📱 Con redes</option>
+              <option value="decision">👤 Con decisor</option>
+              <option value="whatsapp">💬 Con WhatsApp</option>
+            </select>
+            <button onclick="resetSearchResultsFilters()" class="sf-more-btn" style="color:var(--danger);border-color:rgba(239,68,68,.3)">✕ Limpiar</button>
+          </div>
+          <div class="sf-chips" id="search-sf-chips"></div>
+        </div>
         <!-- Filtros rápidos de resultados -->
         <div class="result-filters" id="result-filters" style="display:none;margin-top:1rem;flex-direction:column;gap:.6rem">
           <div style="display:flex;flex-wrap:wrap;gap:.4rem;align-items:center">
@@ -4116,7 +4364,52 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
       <div><h1>Modo Campaña</h1><p class="page-sub">Agrupa leads y gestiona secuencias completas de emails</p></div>
       <button class="btn-primary" onclick="openCampaignModal()">+ Nueva Campaña</button>
     </div>
-    <div id="campaigns-list" class="campaigns-grid"></div>
+    <!-- Campaigns Smart Filter -->
+    <div class="sf-bar">
+      <div class="sf-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="campaigns-search" placeholder="Buscar campaña..." oninput="renderCampaigns(); sfUpdateChips('campaigns')">
+      </div>
+      <div class="sf-sort-wrap">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        <select id="campaigns-sort" onchange="renderCampaigns()">
+          <option value="date_desc">↓ Más reciente</option>
+          <option value="progress_desc">↓ Mayor progreso</option>
+          <option value="leads_desc">↓ Más leads</option>
+          <option value="name">A→Z Nombre</option>
+        </select>
+      </div>
+      <button class="sf-more-btn" id="campaigns-more-btn" onclick="sfTogglePanel('campaigns')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filtros
+        <span class="sf-badge" id="campaigns-sf-badge">0</span>
+      </button>
+      <span class="sf-count" id="campaigns-filter-count"></span>
+    </div>
+    <div class="sf-panel" id="campaigns-sf-panel">
+      <select id="campaigns-filter-seg" onchange="renderCampaigns(); sfUpdateChips('campaigns')">
+        <option value="">Todos los sectores</option>
+        <option value="Todos">Todos</option>
+        <option value="Oficinas">Oficinas</option>
+        <option value="Retail">Retail</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Hoteles">Hotelería</option>
+        <option value="Cultural">Cultural</option>
+        <option value="Deportivo">Deportivo</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Educativo">Educativo</option>
+      </select>
+      <select id="campaigns-filter-status" onchange="renderCampaigns(); sfUpdateChips('campaigns')">
+        <option value="">Cualquier estado</option>
+        <option value="active">Con envíos</option>
+        <option value="empty">Sin envíos</option>
+        <option value="complete">100% completadas</option>
+      </select>
+      <button onclick="resetCampaignsFilters()" class="sf-more-btn" style="color:var(--danger);border-color:rgba(239,68,68,.3)">✕ Limpiar</button>
+    </div>
+    <div class="sf-chips" id="campaigns-sf-chips"></div>
+
+        <div id="campaigns-list" class="campaigns-grid"></div>
     <div id="campaigns-empty" class="empty-state">
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
       <p>No hay campañas activas</p>
@@ -4130,7 +4423,57 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
       <div><h1>Seguimiento de Emails</h1><p class="page-sub">Historial de contactos y estado de cada conversación</p></div>
       <button class="btn-outline" onclick="exportTracking()">Exportar CSV</button>
     </div>
-    <div class="stats-grid" style="margin-bottom:1.5rem">
+    <!-- Tracking Smart Filter -->
+    <div class="sf-bar">
+      <div class="sf-search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="tracking-search" placeholder="Buscar empresa, email, asunto..." oninput="renderTracking(); sfUpdateChips('tracking')">
+      </div>
+      <div class="sf-sort-wrap">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M7 12h10M11 18h2"/></svg>
+        <select id="tracking-sort" onchange="renderTracking()">
+          <option value="date_desc">↓ Más reciente</option>
+          <option value="date_asc">↑ Más antiguo</option>
+          <option value="company">A→Z Empresa</option>
+          <option value="segment">A→Z Sector</option>
+        </select>
+      </div>
+      <button class="sf-more-btn" id="tracking-more-btn" onclick="sfTogglePanel('tracking')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+        Filtros
+        <span class="sf-badge" id="tracking-sf-badge">0</span>
+      </button>
+      <span class="sf-count" id="tracking-filter-count"></span>
+    </div>
+    <div class="sf-panel" id="tracking-sf-panel">
+      <select id="tracking-filter-seg" onchange="renderTracking(); sfUpdateChips('tracking')">
+        <option value="">Todos los sectores</option>
+        <option value="Oficinas">Oficinas</option>
+        <option value="Retail">Retail</option>
+        <option value="Industrial">Industrial</option>
+        <option value="Hoteles">Hotelería</option>
+        <option value="Cultural">Cultural</option>
+        <option value="Deportivo">Deportivo</option>
+        <option value="Comercial">Comercial</option>
+        <option value="Educativo">Educativo</option>
+      </select>
+      <select id="tracking-filter-channel" onchange="renderTracking(); sfUpdateChips('tracking')">
+        <option value="">Todos los canales</option>
+        <option value="email">📧 Email</option>
+        <option value="whatsapp">💬 WhatsApp</option>
+      </select>
+      <select id="tracking-filter-date" onchange="renderTracking(); sfUpdateChips('tracking')">
+        <option value="">Cualquier fecha</option>
+        <option value="today">Hoy</option>
+        <option value="week">Esta semana</option>
+        <option value="month">Este mes</option>
+        <option value="3months">Últimos 3 meses</option>
+      </select>
+      <button onclick="resetTrackingFilters()" class="sf-more-btn" style="color:var(--danger);border-color:rgba(239,68,68,.3)">✕ Limpiar</button>
+    </div>
+    <div class="sf-chips" id="tracking-sf-chips"></div>
+
+        <div class="stats-grid" style="margin-bottom:1.5rem">
       <div class="stat-card stat-blue"><div class="stat-value" id="stat-sent2">0</div><div class="stat-label">Enviados</div></div>
       <div class="stat-card stat-green"><div class="stat-value" id="stat-contacted">0</div><div class="stat-label">Empresas Únicas</div></div>
       <div class="stat-card stat-orange"><div class="stat-value" id="stat-waiting">0</div><div class="stat-label">Sin Respuesta</div></div>
@@ -4752,14 +5095,28 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
   <div class="chat-suggestions" id="chat-suggestions">
     <button class="chat-sug" onclick="chatAsk('Dame el briefing del día')">📅 Briefing hoy</button>
     <button class="chat-sug" onclick="chatExecute('topLeads')">🔥 Leads prioritarios</button>
+    <button class="chat-sug" onclick="generateWeeklyPlan()">🗓️ Plan semanal</button>
     <button class="chat-sug" onclick="chatAsk('¿Por qué no estoy cerrando más?')">🔍 Análisis embudo</button>
-    <button class="chat-sug" onclick="chatAsk('¿Cómo configuro las APIs?')">🔑 Configurar APIs</button>
   </div>
 
   <div class="chat-input-row">
-    <textarea id="chat-input" placeholder="Pregunta, pide datos o di qué mejorar..." rows="1"
+    <button id="chat-mic-btn" onclick="toggleChatVoice()" title="Hablar con el asistente"
+      style="width:34px;height:34px;border-radius:8px;flex-shrink:0;background:var(--glass);
+      border:1px solid var(--glass-border);cursor:pointer;display:flex;align-items:center;
+      justify-content:center;font-size:.9rem;transition:all .2s;color:var(--text-muted)">🎙️</button>
+    <textarea id="chat-input" placeholder="Pregunta, habla o di qué mejorar..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend()}"></textarea>
     <button id="chat-send" onclick="chatSend()">➤</button>
+  </div>
+  <!-- Voice indicator bar -->
+  <div id="chat-voice-bar" style="display:none;padding:.4rem .9rem;background:rgba(239,68,68,.08);
+    border-top:1px solid rgba(239,68,68,.2);font-size:.72rem;color:var(--danger);
+    display:none;align-items:center;gap:.5rem">
+    <span style="width:8px;height:8px;border-radius:50%;background:var(--danger);
+      animation:pulse 1s infinite;display:inline-block"></span>
+    <span id="chat-voice-text">Escuchando... habla ahora</span>
+    <button onclick="stopChatVoice()" style="margin-left:auto;background:none;border:none;
+      color:var(--danger);cursor:pointer;font-size:.75rem">✕ Parar</button>
   </div>
 </div>
 
@@ -5032,12 +5389,12 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
   <div class="chat-suggestions" id="chat-suggestions">
     <button class="chat-sug" onclick="chatAsk('Dame el briefing del día')">📅 Briefing hoy</button>
     <button class="chat-sug" onclick="chatExecute('topLeads')">🔥 Leads prioritarios</button>
+    <button class="chat-sug" onclick="generateWeeklyPlan()">🗓️ Plan semanal</button>
     <button class="chat-sug" onclick="chatAsk('¿Por qué no estoy cerrando más?')">🔍 Análisis embudo</button>
-    <button class="chat-sug" onclick="chatAsk('¿Cómo configuro las APIs?')">🔑 Configurar APIs</button>
   </div>
 
   <div class="chat-input-row">
-    <textarea id="chat-input" placeholder="Pregunta, pide datos o di qué mejorar..." rows="1"
+    <textarea id="chat-input" placeholder="Pregunta, habla o di qué mejorar..." rows="1"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend()}"></textarea>
     <button id="chat-send" onclick="chatSend()">➤</button>
   </div>
@@ -7952,6 +8309,7 @@ async function searchBusinesses() {
     setStep('done','done', places.length + ' listas ⚡');
     setProgress(100);
     document.getElementById('result-filters').style.display = 'flex';
+    const sfb1 = document.getElementById('search-sf-wrap'); if(sfb1) sfb1.style.display='block';
     logEnrich(`⚡ Modo Turbo: ${places.length} empresas en segundos. Pulsa ✨ en cada card para enriquecer individualmente.`, 'ok');
     // Añadir logos Clearbit también en modo turbo
     tempSearchResults.forEach(c => { if (!c.logo) c.logo = getClearbitLogo(c.website); });
@@ -8312,6 +8670,7 @@ async function searchBusinesses() {
   renderSearchCards();
   renderSearchTable();
   document.getElementById('result-filters').style.display = 'flex';
+  const sfb2 = document.getElementById('search-sf-wrap'); if(sfb2) sfb2.style.display='block';
   updateEnrichStats();
   resetSearchBtn();
 
@@ -8650,20 +9009,25 @@ function filterResults(type, btn) {
 }
 
 function applyAdvancedFilters() {
-  const type = currentResultFilter || 'all';
-  const ratingMin = parseFloat(document.getElementById('filter-rating-min')?.value || 0);
+  const type       = currentResultFilter || 'all';
+  const ratingMin  = parseFloat(document.getElementById('filter-rating-min')?.value || 0);
   const reviewsMin = parseInt(document.getElementById('filter-reviews-min')?.value || 0);
-  const distMax = parseFloat(document.getElementById('filter-dist-max')?.value || 50);
-  const hasWeb = document.getElementById('filter-has-web')?.checked || false;
-  const noLeads = document.getElementById('filter-no-leads')?.checked || false;
+  const distMax    = parseFloat(document.getElementById('filter-dist-max')?.value || 50);
+  const hasWeb     = document.getElementById('filter-has-web')?.checked || false;
+  const noLeads    = document.getElementById('filter-no-leads')?.checked || false;
+  const srText     = (document.getElementById('search-results-text')?.value || '').toLowerCase();
+  const srHas      = document.getElementById('search-results-has')?.value || '';
+  const srSort     = document.getElementById('search-results-sort')?.value || 'default';
 
   const cards = document.querySelectorAll('.search-card');
+  let visibleCount = 0;
+
   cards.forEach((card, i) => {
     const c = tempSearchResults[i];
     if (!c) return;
     let show = true;
 
-    // Filtros de tipo
+    // Filtros de tipo (quick filters)
     if (type === 'email')      show = !!c.email;
     if (type === 'phone')      show = !!c.phone;
     if (type === 'social')     show = !!(c.instagram || c.facebook || c.linkedin);
@@ -8674,7 +9038,7 @@ function applyAdvancedFilters() {
     if (type === 'verified')   show = !!(c.legalStatus && /active|activa/i.test(c.legalStatus));
 
     // Filtros avanzados
-    if (show && ratingMin > 0) show = !!(c.rating && c.rating >= ratingMin);
+    if (show && ratingMin > 0)  show = !!(c.rating && c.rating >= ratingMin);
     if (show && reviewsMin > 0) show = !!(c.ratingCount && c.ratingCount >= reviewsMin);
     if (show && distMax < 50 && c.distKm != null) show = c.distKm <= distMax;
     if (show && hasWeb) show = !!c.website;
@@ -8685,12 +9049,60 @@ function applyAdvancedFilters() {
         _nn(l.company) === _nn(c.name)
       ));
     }
+    // Text search filter
+    if (show && srText) {
+      const hay = [c.name, c.email, c.website, c.phone, c.address,
+        c.decision_maker, ...(c.signals||[])].join(' ').toLowerCase();
+      if (!hay.includes(srText)) show = false;
+    }
+    // Has filter
+    if (show && srHas) {
+      if (srHas === 'email' && !c.email) show = false;
+      if (srHas === 'phone' && !c.phone) show = false;
+      if (srHas === 'web' && !c.website) show = false;
+      if (srHas === 'social' && !(c.instagram||c.facebook||c.linkedin)) show = false;
+      if (srHas === 'decision' && !c.decision_maker) show = false;
+      if (srHas === 'whatsapp' && !c.whatsapp) show = false;
+    }
 
     card.style.display = show ? 'block' : 'none';
+    if (show) visibleCount++;
   });
+
+  // Sort cards if needed
+  if (srSort !== 'default' && tempSearchResults.length > 0) {
+    const grid = document.getElementById('search-cards-grid');
+    if (grid) {
+      const cardEls = Array.from(grid.querySelectorAll('.search-card'));
+      cardEls.sort((a, b) => {
+        const ai = parseInt(a.dataset.index || 0);
+        const bi = parseInt(b.dataset.index || 0);
+        const ca = tempSearchResults[ai] || {};
+        const cb = tempSearchResults[bi] || {};
+        if (srSort === 'rating_desc')   return (cb.rating||0) - (ca.rating||0);
+        if (srSort === 'reviews_desc')  return (cb.ratingCount||0) - (ca.ratingCount||0);
+        if (srSort === 'name_asc')      return (ca.name||'').localeCompare(cb.name||'');
+        if (srSort === 'distance_asc')  return (ca.distKm||999) - (cb.distKm||999);
+        return 0;
+      });
+      cardEls.forEach(c => grid.appendChild(c));
+    }
+  }
+
+  // Update count
+  const cntEl = document.getElementById('search-results-count');
+  if (cntEl) cntEl.textContent = `${visibleCount} resultados`;
 
   // Actualizar tabla también si está visible
   renderSearchTable();
+}
+
+function resetSearchResultsFilters() {
+  ['search-results-text','search-results-sort','search-results-has'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'search-results-sort' ? 'default' : '';
+  });
+  applyAdvancedFilters();
 }
 
 function resetAdvancedFilters() {
@@ -9125,29 +9537,66 @@ function saveLeads() {
 }
 
 function getFilteredLeads() {
-  const search = (document.getElementById('lead-search')?.value || '').toLowerCase();
-  const seg = document.getElementById('filter-segment')?.value || '';
-  const status = document.getElementById('filter-status')?.value || '';
-  const source = document.getElementById('filter-source')?.value || '';
-  const sort = document.getElementById('sort-leads')?.value || 'score';
+  const search    = (document.getElementById('lead-search')?.value || '').toLowerCase();
+  const seg       = document.getElementById('filter-segment')?.value || '';
+  const status    = document.getElementById('filter-status')?.value || '';
+  const source    = document.getElementById('filter-source')?.value || '';
+  const sort      = document.getElementById('sort-leads')?.value || 'score';
+  const scoreMin  = parseInt(document.getElementById('filter-score-min')?.value || '0') || 0;
+  const dateRange = document.getElementById('filter-date-range')?.value || '';
+  const nextCon   = document.getElementById('filter-next-contact')?.value || '';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay() + 1);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const threeMonthsAgo = new Date(today); threeMonthsAgo.setMonth(today.getMonth() - 3);
 
   let list = leads.filter(l => {
     if (l.archived) return false;
-    if (search && !l.name.toLowerCase().includes(search) &&
-        !l.company.toLowerCase().includes(search) &&
-        !(l.signal||'').toLowerCase().includes(search) &&
-        !(l.notes||'').toLowerCase().includes(search) &&
-        !(l.tags||[]).some(t => t.toLowerCase().includes(search))) return false;
+    if (search) {
+      const haystack = [l.name, l.company, l.email, l.phone, l.segment,
+        l.signal, l.notes, l.address, l.web, l.description,
+        ...(l.tags||[]), ...(l.signals||[])].join(' ').toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
     if (seg && l.segment !== seg) return false;
     if (status && l.status !== status) return false;
     if (source && (l.source || 'manual') !== source) return false;
+    if (scoreMin && (l.score || 0) < scoreMin) return false;
+    if (dateRange && l.date) {
+      const d = new Date(l.date); d.setHours(0,0,0,0);
+      if (dateRange === 'today' && d.getTime() !== today.getTime()) return false;
+      if (dateRange === 'week' && d < weekStart) return false;
+      if (dateRange === 'month' && d < monthStart) return false;
+      if (dateRange === '3months' && d < threeMonthsAgo) return false;
+    }
+    if (nextCon) {
+      if (nextCon === 'none' && l.next_contact) return false;
+      if (nextCon === 'overdue') {
+        if (!l.next_contact) return false;
+        if (new Date(l.next_contact) >= today) return false;
+      }
+      if (nextCon === 'today') {
+        if (!l.next_contact) return false;
+        const nc = new Date(l.next_contact); nc.setHours(0,0,0,0);
+        if (nc.getTime() !== today.getTime()) return false;
+      }
+      if (nextCon === 'week') {
+        if (!l.next_contact) return false;
+        const nc = new Date(l.next_contact); nc.setHours(0,0,0,0);
+        const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+        if (nc < today || nc >= weekEnd) return false;
+      }
+    }
     return true;
   });
 
   list.sort((a, b) => {
-    if (sort === 'score') return b.score - a.score;
-    if (sort === 'date') return new Date(b.date) - new Date(a.date);
-    if (sort === 'company') return a.company.localeCompare(b.company);
+    if (sort === 'score') return (b.score||0) - (a.score||0);
+    if (sort === 'date') return new Date(b.date||0) - new Date(a.date||0);
+    if (sort === 'company') return (a.company||'').localeCompare(b.company||'');
+    if (sort === 'name') return (a.name||'').localeCompare(b.name||'');
+    if (sort === 'rating') return (b.rating||0) - (a.rating||0);
     if (sort === 'next_contact') {
       if (!a.next_contact && !b.next_contact) return 0;
       if (!a.next_contact) return 1;
@@ -9162,11 +9611,24 @@ function getFilteredLeads() {
     return 0;
   });
 
-  // Update count bar
+  // Count active filters
+  const activeFilters = [search, seg, status, source, scoreMin, dateRange, nextCon].filter(Boolean).length;
   const bar = document.getElementById('leads-count-bar');
-  if (bar) bar.textContent = `Mostrando ${list.length} de ${leads.filter(l=>!l.archived).length} leads`;
-
+  if (bar) {
+    const total = leads.filter(l=>!l.archived).length;
+    bar.innerHTML = `Mostrando <strong>${list.length}</strong> de ${total} leads` +
+      (activeFilters ? ` <span style="color:var(--primary)">(${activeFilters} filtro${activeFilters>1?'s':''} activo${activeFilters>1?'s':''})</span>` : '');
+  }
   return list;
+}
+
+function resetLeadsFilters() {
+  ['lead-search','filter-segment','filter-status','filter-source','sort-leads',
+   'filter-score-min','filter-date-range','filter-next-contact'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = id === 'sort-leads' ? 'score' : ''; }
+  });
+  renderLeads();
 }
 
 function renderLeads() {
@@ -9976,7 +10438,44 @@ function renderKanban() {
     const container = document.getElementById(`cards-${status}`);
     const counter = document.getElementById(`cnt-${status}`);
     if (!container) return;
-    const items = leads.filter(l => l.status === status && !l.archived);
+    const kSearch   = (document.getElementById('kanban-search')?.value || '').toLowerCase();
+    const kSeg      = document.getElementById('kanban-filter-seg')?.value || '';
+    const kScore    = parseInt(document.getElementById('kanban-filter-score')?.value || '0') || 0;
+    const kSort     = document.getElementById('kanban-sort')?.value || 'score';
+    const kOverdue  = document.getElementById('kanban-filter-overdue')?.checked || false;
+    const kToday    = new Date(); kToday.setHours(0,0,0,0);
+
+    let items = leads.filter(l => {
+      if (l.status !== status || l.archived) return false;
+      if (kSearch) {
+        const hay = [l.name, l.company, l.email, l.segment, l.notes].join(' ').toLowerCase();
+        if (!hay.includes(kSearch)) return false;
+      }
+      if (kSeg && l.segment !== kSeg) return false;
+      if (kScore && (l.score||0) < kScore) return false;
+      if (kOverdue) {
+        if (!l.next_contact) return false;
+        if (new Date(l.next_contact) >= kToday) return false;
+      }
+      return true;
+    });
+
+    items.sort((a,b) => {
+      if (kSort === 'score') return (b.score||0) - (a.score||0);
+      if (kSort === 'company') return (a.company||'').localeCompare(b.company||'');
+      if (kSort === 'days') {
+        const dA = a.status_date ? Math.floor((Date.now()-new Date(a.status_date))/86400000) : 0;
+        const dB = b.status_date ? Math.floor((Date.now()-new Date(b.status_date))/86400000) : 0;
+        return dB - dA;
+      }
+      if (kSort === 'next_contact') {
+        if (!a.next_contact && !b.next_contact) return 0;
+        if (!a.next_contact) return 1; if (!b.next_contact) return -1;
+        return new Date(a.next_contact) - new Date(b.next_contact);
+      }
+      if (kSort === 'budget') return (b.budget||0) - (a.budget||0);
+      return 0;
+    });
     if (counter) counter.innerText = items.length;
     // MEJORA 3: Pipeline value per column
     const colValue = items.reduce((s, l) => s + (l.budget || 0), 0);
@@ -10029,6 +10528,29 @@ function renderKanban() {
         }).join('')
       : `<div style="text-align:center;padding:1.5rem;color:var(--text-dim);font-size:.78rem">Arrastra aquí</div>`;
   });
+
+  // Update kanban filter count
+  const kCountEl = document.getElementById('kanban-filter-count');
+  if (kCountEl) {
+    const total = leads.filter(l => !l.archived).length;
+    const shown = leads.filter(l => !l.archived).length; // rough total
+    const kSearch = (document.getElementById('kanban-search')?.value || '');
+    const kSeg = document.getElementById('kanban-filter-seg')?.value || '';
+    const kScore = document.getElementById('kanban-filter-score')?.value || '';
+    const kOverdue = document.getElementById('kanban-filter-overdue')?.checked || false;
+    const activeK = [kSearch, kSeg, kScore, kOverdue ? '1' : ''].filter(Boolean).length;
+    kCountEl.textContent = activeK ? `${activeK} filtro${activeK>1?'s':''} activo${activeK>1?'s':''}` : '';
+  }
+}
+
+function resetKanbanFilters() {
+  ['kanban-search','kanban-filter-seg','kanban-filter-score','kanban-sort'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'kanban-sort' ? 'score' : '';
+  });
+  const ov = document.getElementById('kanban-filter-overdue');
+  if (ov) ov.checked = false;
+  renderKanban();
 }
 
 let draggedId = null;
@@ -10062,7 +10584,54 @@ function renderTracking() {
   tbody.innerHTML = '';
   if (!emailHistory.length) { if (empty) empty.style.display = 'flex'; return; }
   if (empty) empty.style.display = 'none';
-  emailHistory.forEach(e => {
+
+  const tSearch  = (document.getElementById('tracking-search')?.value || '').toLowerCase();
+  const tSeg     = document.getElementById('tracking-filter-seg')?.value || '';
+  const tChannel = document.getElementById('tracking-filter-channel')?.value || '';
+  const tDate    = document.getElementById('tracking-filter-date')?.value || '';
+  const tSort    = document.getElementById('tracking-sort')?.value || 'date_desc';
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay() + 1);
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const threeMonthsAgo = new Date(today); threeMonthsAgo.setMonth(today.getMonth() - 3);
+
+  let list = emailHistory.filter(e => {
+    if (tSearch) {
+      const hay = [e.company, e.email, e.subject, e.segment, e.notes, e.channel].join(' ').toLowerCase();
+      if (!hay.includes(tSearch)) return false;
+    }
+    if (tSeg && e.segment !== tSeg) return false;
+    if (tChannel && (e.channel || 'email') !== tChannel) return false;
+    if (tDate && e.date) {
+      const d = new Date(e.date); d.setHours(0,0,0,0);
+      if (tDate === 'today' && d.getTime() !== today.getTime()) return false;
+      if (tDate === 'week' && d < weekStart) return false;
+      if (tDate === 'month' && d < monthStart) return false;
+      if (tDate === '3months' && d < threeMonthsAgo) return false;
+    }
+    return true;
+  });
+
+  list.sort((a,b) => {
+    if (tSort === 'date_desc') return new Date(b.date||0) - new Date(a.date||0);
+    if (tSort === 'date_asc')  return new Date(a.date||0) - new Date(b.date||0);
+    if (tSort === 'company')   return (a.company||'').localeCompare(b.company||'');
+    if (tSort === 'segment')   return (a.segment||'').localeCompare(b.segment||'');
+    return 0;
+  });
+
+  // Update count
+  const cntEl = document.getElementById('tracking-filter-count');
+  if (cntEl) {
+    const active = [tSearch,tSeg,tChannel,tDate].filter(Boolean).length;
+    cntEl.textContent = `${list.length} de ${emailHistory.length} registros` +
+      (active ? ` · ${active} filtro${active>1?'s':''}` : '');
+  }
+
+  if (!list.length) { if (empty) empty.style.display = 'flex'; return; }
+
+  list.forEach(e => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="font-size:.78rem">${new Date(e.date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</td>
@@ -10073,6 +10642,14 @@ function renderTracking() {
       <td style="font-size:.78rem;color:var(--text-muted)">${e.notes||'—'}</td>`;
     tbody.appendChild(tr);
   });
+}
+
+function resetTrackingFilters() {
+  ['tracking-search','tracking-filter-seg','tracking-filter-channel','tracking-filter-date','tracking-sort'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'tracking-sort' ? 'date_desc' : '';
+  });
+  renderTracking();
 }
 
 function exportTracking() {
@@ -10327,9 +10904,54 @@ function renderCampaigns() {
   const empty = document.getElementById('campaigns-empty');
   if (!container) return;
   if (!campaigns.length) { empty.style.display = 'flex'; container.style.display = 'none'; return; }
+
+  const cSearch = (document.getElementById('campaigns-search')?.value || '').toLowerCase();
+  const cSeg    = document.getElementById('campaigns-filter-seg')?.value || '';
+  const cSort   = document.getElementById('campaigns-sort')?.value || 'date_desc';
+  const cStatus = document.getElementById('campaigns-filter-status')?.value || '';
+
+  let list = campaigns.filter(c => {
+    if (cSearch && !c.name.toLowerCase().includes(cSearch) && !(c.desc||'').toLowerCase().includes(cSearch)) return false;
+    if (cSeg && c.segment !== cSeg) return false;
+    if (cStatus) {
+      const sent = emailHistory.filter(e => c.segment === 'Todos' || e.segment === c.segment).length;
+      const total = c.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === c.segment).length;
+      const pct = total ? Math.min(Math.round(sent/total*100), 100) : 0;
+      if (cStatus === 'active' && sent === 0) return false;
+      if (cStatus === 'empty' && sent > 0) return false;
+      if (cStatus === 'complete' && pct < 100) return false;
+    }
+    return true;
+  });
+
+  list.sort((a,b) => {
+    if (cSort === 'date_desc') return (b.id||0) - (a.id||0);
+    if (cSort === 'name') return a.name.localeCompare(b.name);
+    if (cSort === 'progress_desc') {
+      const sentA = emailHistory.filter(e => a.segment === 'Todos' || e.segment === a.segment).length;
+      const sentB = emailHistory.filter(e => b.segment === 'Todos' || e.segment === b.segment).length;
+      const totA  = a.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === a.segment).length;
+      const totB  = b.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === b.segment).length;
+      return (totB ? sentB/totB : 0) - (totA ? sentA/totA : 0);
+    }
+    if (cSort === 'leads_desc') {
+      const tA = a.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === a.segment).length;
+      const tB = b.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === b.segment).length;
+      return tB - tA;
+    }
+    return 0;
+  });
+
+  const cntEl = document.getElementById('campaigns-filter-count');
+  if (cntEl) {
+    const active = [cSearch,cSeg,cStatus].filter(Boolean).length;
+    cntEl.textContent = `${list.length} de ${campaigns.length}` + (active ? ` · ${active} filtro${active>1?'s':''}` : '');
+  }
+
+  if (!list.length) { empty.style.display = 'flex'; container.style.display = 'none'; return; }
   empty.style.display = 'none';
   container.style.display = 'grid';
-  container.innerHTML = campaigns.map(c => {
+  container.innerHTML = list.map(c => {
     // Calculate real sent from emailHistory matching segment
     const realSent = emailHistory.filter(e => c.segment === 'Todos' || e.segment === c.segment).length;
     const totalLeads = c.segment === 'Todos' ? leads.length : leads.filter(l => l.segment === c.segment).length;
@@ -10356,6 +10978,14 @@ function renderCampaigns() {
         </div>
       </div>`;
   }).join('');
+}
+
+function resetCampaignsFilters() {
+  ['campaigns-search','campaigns-filter-seg','campaigns-sort','campaigns-filter-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = id === 'campaigns-sort' ? 'date_desc' : '';
+  });
+  renderCampaigns();
 }
 
 function deleteCampaign(id) {
@@ -12094,6 +12724,543 @@ ${history.length ? 'Historial: ' + history.map(h => new Date(h.date).toLocaleDat
   return ctx;
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🎙️ MEJORA 1: CONTROL POR VOZ en el chat
+// ══════════════════════════════════════════════════════════════════════════════
+function toggleChatVoice() {
+  if (_chatVoiceActive) { stopChatVoice(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('⚠️ Usa Chrome para reconocimiento de voz'); return; }
+
+  _chatVoiceRecog = new SR();
+  _chatVoiceRecog.lang = 'es-ES';
+  _chatVoiceRecog.continuous = false;
+  _chatVoiceRecog.interimResults = true;
+
+  const micBtn = document.getElementById('chat-mic-btn');
+  const voiceBar = document.getElementById('chat-voice-bar');
+  const voiceText = document.getElementById('chat-voice-text');
+  const inputEl = document.getElementById('chat-input');
+
+  micBtn.classList.add('listening');
+  micBtn.textContent = '🔴';
+  voiceBar.classList.add('active');
+  _chatVoiceActive = true;
+
+  let finalTranscript = '';
+
+  _chatVoiceRecog.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    if (voiceText) voiceText.textContent = (finalTranscript + interim) || 'Escuchando...';
+    if (inputEl) inputEl.value = finalTranscript + interim;
+  };
+
+  _chatVoiceRecog.onend = () => {
+    stopChatVoice();
+    if (finalTranscript.trim()) {
+      setTimeout(() => chatSend(), 200);
+    }
+  };
+
+  _chatVoiceRecog.onerror = (e) => {
+    stopChatVoice();
+    if (e.error !== 'no-speech') showToast('Error de micrófono: ' + e.error);
+  };
+
+  _chatVoiceRecog.start();
+}
+
+function stopChatVoice() {
+  _chatVoiceActive = false;
+  if (_chatVoiceRecog) { try { _chatVoiceRecog.stop(); } catch(e) {} _chatVoiceRecog = null; }
+  const micBtn = document.getElementById('chat-mic-btn');
+  const voiceBar = document.getElementById('chat-voice-bar');
+  if (micBtn) { micBtn.classList.remove('listening'); micBtn.textContent = '🎙️'; }
+  if (voiceBar) voiceBar.classList.remove('active');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🧠 MEJORA 2: MEMORIA PERSISTENTE entre sesiones
+// ══════════════════════════════════════════════════════════════════════════════
+function extractAndSaveMemory(userMsg, botReply) {
+  // Extract key preferences and facts from the conversation
+  const lower = userMsg.toLowerCase();
+
+  // Sector preferences
+  const sectorMatch = lower.match(/sector (hotelero|restauración|retail|educativo|industrial|oficinas|sanidad|logística)/);
+  if (sectorMatch) {
+    chatMemory.preferredSector = sectorMatch[1];
+  }
+
+  // Tone preferences
+  if (lower.includes('más corto') || lower.includes('más breve')) chatMemory.emailTone = 'conciso';
+  if (lower.includes('más formal')) chatMemory.emailTone = 'formal';
+  if (lower.includes('más cercano') || lower.includes('más informal')) chatMemory.emailTone = 'cercano';
+
+  // Track what actions were taken
+  if (!chatMemory.actionHistory) chatMemory.actionHistory = [];
+  if (lower.includes('email') || lower.includes('correo')) {
+    chatMemory.actionHistory.unshift({ type: 'email', date: new Date().toISOString() });
+  }
+  if (lower.includes('buscar') || lower.includes('búsqueda')) {
+    chatMemory.actionHistory.unshift({ type: 'search', date: new Date().toISOString() });
+  }
+  chatMemory.actionHistory = chatMemory.actionHistory.slice(0, 20);
+
+  // Last interaction
+  chatMemory.lastSeen = new Date().toISOString();
+  chatMemory.totalMessages = (chatMemory.totalMessages || 0) + 1;
+
+  saveChatMemory();
+}
+
+function buildMemoryContext() {
+  if (!chatMemory || Object.keys(chatMemory).length === 0) return '';
+  const parts = [];
+  if (chatMemory.preferredSector) parts.push(`El usuario ha trabajado con el sector "${chatMemory.preferredSector}" antes.`);
+  if (chatMemory.emailTone) parts.push(`Prefiere emails con tono "${chatMemory.emailTone}".`);
+  if (chatMemory.totalMessages) parts.push(`Ha usado el asistente ${chatMemory.totalMessages} veces.`);
+  if (chatMemory.lastSeen) {
+    const days = Math.floor((Date.now() - new Date(chatMemory.lastSeen)) / 86400000);
+    if (days > 0) parts.push(`Su última sesión fue hace ${days} día${days>1?'s':''}.`);
+  }
+  if (!parts.length) return '';
+  return '\n\nMEMORIA DE SESIONES ANTERIORES:\n' + parts.join(' ');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 📊 MEJORA 3: RESPUESTAS CON MINI-GRÁFICOS en el chat
+// ══════════════════════════════════════════════════════════════════════════════
+function renderChatChart(type, data) {
+  const el = document.createElement('div');
+  el.style.cssText = 'margin-top:.6rem;padding:.75rem;background:var(--bg3);border:1px solid var(--glass-border);border-radius:10px;font-size:.75rem';
+
+  if (type === 'funnel') {
+    const max = Math.max(...data.map(d => d.value), 1);
+    el.innerHTML = `<div style="font-weight:700;color:var(--text);margin-bottom:.6rem;font-size:.78rem">📊 Tu embudo actual</div>` +
+      data.map(d => `
+        <div style="margin-bottom:.4rem">
+          <div style="display:flex;justify-content:space-between;margin-bottom:.2rem">
+            <span style="color:var(--text-dim)">${d.label}</span>
+            <span style="font-weight:700;color:var(--text)">${d.value}</span>
+          </div>
+          <div style="background:var(--glass);border-radius:4px;height:8px">
+            <div class="chat-chart-bar" style="width:${Math.round(d.value/max*100)}%;background:${d.color||'var(--primary)'}"></div>
+          </div>
+        </div>`).join('');
+  }
+
+  if (type === 'bars') {
+    const max = Math.max(...data.map(d => d.value), 1);
+    el.innerHTML = `<div style="font-weight:700;color:var(--text);margin-bottom:.6rem;font-size:.78rem">${data.title||'📊 Datos'}</div>
+      <div style="display:flex;align-items:flex-end;gap:.4rem;height:60px">` +
+      data.items.map(d => `
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:.2rem">
+          <span style="font-size:.65rem;color:var(--text-dim)">${d.value}</span>
+          <div style="width:100%;background:linear-gradient(180deg,var(--primary),#a78bfa);border-radius:3px 3px 0 0;
+            height:${Math.max(4, Math.round(d.value/max*48))}px"></div>
+          <span style="font-size:.6rem;color:var(--text-dim);text-align:center;line-height:1.2">${d.label}</span>
+        </div>`).join('') + '</div>';
+  }
+
+  if (type === 'donut') {
+    const total = data.items.reduce((s,d) => s+d.value, 0) || 1;
+    el.innerHTML = `<div style="font-weight:700;color:var(--text);margin-bottom:.6rem;font-size:.78rem">${data.title||'Distribución'}</div>` +
+      data.items.map(d => `
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">
+          <div style="width:10px;height:10px;border-radius:2px;background:${d.color||'var(--primary)'};flex-shrink:0"></div>
+          <span style="flex:1;color:var(--text-dim)">${d.label}</span>
+          <span style="font-weight:700;color:var(--text)">${d.value}</span>
+          <span style="color:var(--text-dim);font-size:.7rem">${Math.round(d.value/total*100)}%</span>
+        </div>`).join('');
+  }
+
+  return el;
+}
+
+function appendChatCharts(msgEl, lead_data) {
+  // Auto-generate funnel chart from real data
+  const statuses = ['Pendiente','Contactado','Respuesta del cliente','Visita','Entrega de presupuesto','Cerrado'];
+  const colors   = ['#6366f1','#0A84FF','#f59e0b','#10d97c','#a78bfa','#22c55e'];
+  const funnelData = statuses.map((s,i) => ({
+    label: s, color: colors[i],
+    value: leads.filter(l => !l.archived && l.status === s).length
+  })).filter(d => d.value > 0);
+
+  if (funnelData.length > 0) {
+    msgEl.appendChild(renderChatChart('funnel', funnelData));
+  }
+
+  // Segment distribution
+  const segCounts = {};
+  leads.filter(l => !l.archived).forEach(l => {
+    segCounts[l.segment || 'Sin segmento'] = (segCounts[l.segment || 'Sin segmento'] || 0) + 1;
+  });
+  const topSegs = Object.entries(segCounts).sort((a,b) => b[1]-a[1]).slice(0,5);
+  if (topSegs.length > 1) {
+    const segColors = ['#6366f1','#0A84FF','#f59e0b','#10d97c','#a78bfa'];
+    msgEl.appendChild(renderChatChart('donut', {
+      title: '🏢 Leads por sector',
+      items: topSegs.map(([label,value],i) => ({ label, value, color: segColors[i] }))
+    }));
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🤖 MEJORA 4: MODO AUTÓNOMO — el asistente actúa sin que le pidas
+// ══════════════════════════════════════════════════════════════════════════════
+let _proactiveShown = false;
+
+function runProactiveCheck() {
+  if (_proactiveShown || chatOpen) return;
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Check 1: Hot lead without contact for >3 days
+  const hotUncontacted = leads.filter(l => {
+    if (l.archived || l.status !== 'Pendiente' || l.score < 75) return false;
+    const created = new Date(l.date || 0);
+    return (today - created) / 86400000 > 3;
+  }).sort((a,b) => b.score - a.score)[0];
+
+  // Check 2: Lead stuck in "Visita" for >10 days
+  const stuckLead = leads.filter(l => {
+    if (l.archived || l.status !== 'Visita' || !l.status_date) return false;
+    return (Date.now() - new Date(l.status_date)) / 86400000 > 10;
+  })[0];
+
+  // Check 3: Overdue follow-ups
+  const overdueCount = leads.filter(l => {
+    if (l.archived || !l.next_contact) return false;
+    return new Date(l.next_contact) < today;
+  }).length;
+
+  let proactiveMsg = null;
+
+  if (hotUncontacted) {
+    proactiveMsg = {
+      text: `🔥 <strong>${hotUncontacted.company}</strong> lleva ${Math.floor((today - new Date(hotUncontacted.date||0))/86400000)} días sin contactar y tiene score <strong>${hotUncontacted.score}pts</strong>. ¿Genero el email IA ahora?`,
+      actions: [
+        { label: '✨ Sí, generar email', fn: () => { openAiEmailModal(hotUncontacted.id); toggleChat(); } },
+        { label: '📋 Ver lead', fn: () => { openLeadDetail(hotUncontacted.id); toggleChat(); } },
+        { label: '✕ Ahora no', fn: null }
+      ]
+    };
+  } else if (stuckLead) {
+    const days = Math.floor((Date.now() - new Date(stuckLead.status_date)) / 86400000);
+    proactiveMsg = {
+      text: `⏰ <strong>${stuckLead.company}</strong> lleva <strong>${days} días</strong> en estado "Visita" sin avance. ¿Quieres que genere un seguimiento personalizado?`,
+      actions: [
+        { label: '💬 Generar seguimiento', fn: () => { openAiEmailModal(stuckLead.id); toggleChat(); } },
+        { label: '✕ Ignorar', fn: null }
+      ]
+    };
+  } else if (overdueCount >= 3) {
+    proactiveMsg = {
+      text: `📅 Tienes <strong>${overdueCount} seguimientos vencidos</strong>. ¿Los revisamos ahora?`,
+      actions: [
+        { label: '⏰ Ver vencidos', fn: () => { chatExecute('overdueLeads'); } },
+        { label: '✕ Luego', fn: null }
+      ]
+    };
+  }
+
+  if (proactiveMsg) {
+    _proactiveShown = true;
+    // Show notification bubble
+    const notifEl = document.getElementById('chat-notif');
+    if (notifEl) {
+      notifEl.style.display = 'flex';
+      notifEl.textContent = '!';
+      notifEl.style.background = '#6366f1';
+    }
+    // Store for when chat opens
+    window._pendingProactiveMsg = proactiveMsg;
+  }
+}
+
+function showPendingProactive() {
+  if (!window._pendingProactiveMsg) return;
+  const msg = window._pendingProactiveMsg;
+  window._pendingProactiveMsg = null;
+
+  setTimeout(() => {
+    const wrap = document.createElement('div');
+    wrap.className = 'chat-proactive';
+    wrap.innerHTML = msg.text;
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap';
+
+    msg.actions.forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = a.fn ? 'btn-primary' : 'btn-outline';
+      btn.style.cssText = 'font-size:.72rem;padding:.25rem .65rem';
+      btn.textContent = a.label;
+      btn.onclick = () => {
+        wrap.remove();
+        if (a.fn) a.fn();
+      };
+      btnRow.appendChild(btn);
+    });
+    wrap.appendChild(btnRow);
+
+    const msgEl = document.getElementById('chat-messages');
+    if (msgEl) { msgEl.appendChild(wrap); msgEl.scrollTop = msgEl.scrollHeight; }
+  }, 600);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🎯 MEJORA 5: PLAN SEMANAL — lunes por la mañana
+// ══════════════════════════════════════════════════════════════════════════════
+async function generateWeeklyPlan() {
+  const claudeKey = localStorage.getItem('gordi_claude_key');
+  if (!claudeKey) {
+    chatAddMessage('bot', '⚠️ Necesitas la API key de Gemini para generar el plan semanal.');
+    return;
+  }
+
+  chatAddMessage('bot', '⏳ Analizando tus datos y generando el plan semanal...');
+  chatShowTyping();
+
+  try {
+    const ctx = buildRichAppContext();
+    const today = new Date();
+    const dayName = today.toLocaleDateString('es-ES', { weekday:'long' });
+
+    const prompt = `${ctx}
+
+Eres un coach de ventas senior. Genera un plan de acción semanal concreto y motivador para este comercial de Voltium Madrid.
+
+Hoy es ${dayName}. Analiza los datos reales de su cuenta y genera:
+1. Un diagnóstico rápido de la semana pasada (2 frases, con números reales)
+2. Exactamente 5 tareas prioritarias para esta semana, ordenadas por impacto, cada una con:
+   - Empresa/acción concreta (usa nombres reales de los leads si los hay)
+   - Por qué esta semana (urgencia o oportunidad)
+   - Resultado esperado
+3. Un objetivo numérico realista para la semana (emails enviados)
+4. Una frase motivadora personalizada (sin clichés genéricos)
+
+Responde SOLO en JSON válido:
+{
+  "diagnosis": "texto del diagnóstico",
+  "tasks": [
+    {"priority": 1, "action": "...", "why": "...", "expected": "...", "leadId": null},
+    ...
+  ],
+  "weekGoal": {"emails": N, "reason": "..."},
+  "motivation": "frase motivadora"
+}`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${claudeKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.6, maxOutputTokens: 1200 }
+        })
+      }
+    );
+    const data = await res.json();
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const plan = JSON.parse(raw);
+
+    chatRemoveTyping();
+
+    // Build the weekly plan message
+    const msgEl = chatAddMessage('bot',
+      `🗓️ <strong>Plan semanal — ${today.toLocaleDateString('es-ES', {day:'numeric',month:'long'})}</strong><br><br>` +
+      `<em style="color:var(--text-dim);font-size:.77rem">${plan.diagnosis}</em>`
+    );
+
+    // Tasks card
+    const card = document.createElement('div');
+    card.className = 'chat-week-card';
+    card.innerHTML = '<div style="font-weight:700;font-size:.8rem;margin-bottom:.5rem;color:var(--text)">🎯 Tus 5 tareas esta semana:</div>';
+
+    (plan.tasks || []).forEach((t, i) => {
+      const row = document.createElement('div');
+      row.className = 'chat-week-task';
+      row.innerHTML = `
+        <div class="chat-week-num">${i+1}.</div>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:.8rem;color:var(--text)">${t.action}</div>
+          <div style="font-size:.72rem;color:var(--text-dim);margin-top:.1rem">${t.why}</div>
+          <div style="font-size:.7rem;color:var(--success);margin-top:.1rem">→ ${t.expected}</div>
+        </div>`;
+
+      // If there's a lead associated, find and add email button
+      const matchedLead = leads.find(l => t.action && l.company && t.action.includes(l.company));
+      if (matchedLead) {
+        const btn = document.createElement('button');
+        btn.style.cssText = 'background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a78bfa;border-radius:5px;padding:.15rem .4rem;font-size:.68rem;cursor:pointer;flex-shrink:0';
+        btn.textContent = '✨';
+        btn.title = 'Email IA para ' + matchedLead.company;
+        btn.onclick = () => { openAiEmailModal(matchedLead.id); toggleChat(); };
+        row.appendChild(btn);
+      }
+      card.appendChild(row);
+    });
+
+    if (plan.weekGoal) {
+      const goal = document.createElement('div');
+      goal.style.cssText = 'margin-top:.6rem;padding:.5rem .65rem;background:rgba(16,217,124,.07);border-radius:6px;font-size:.75rem';
+      goal.innerHTML = `🎯 <strong>Objetivo:</strong> ${plan.weekGoal.emails} emails esta semana — ${plan.weekGoal.reason}`;
+      card.appendChild(goal);
+    }
+
+    msgEl.appendChild(card);
+
+    if (plan.motivation) {
+      const mot = document.createElement('div');
+      mot.style.cssText = 'margin-top:.5rem;font-size:.77rem;color:var(--primary);font-style:italic;padding:.4rem .6rem;border-left:3px solid var(--primary)';
+      mot.textContent = '💪 ' + plan.motivation;
+      msgEl.appendChild(mot);
+    }
+
+    // Action buttons
+    const actRow = document.createElement('div');
+    actRow.style.cssText = 'display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap';
+    [
+      { label:'🔥 Ver leads hot', fn: () => chatExecute('topLeads') },
+      { label:'📊 Stats semana', fn: () => chatExecute('weekStats') },
+    ].forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-outline';
+      btn.style.cssText = 'font-size:.72rem;padding:.25rem .6rem';
+      btn.textContent = a.label;
+      btn.onclick = a.fn;
+      actRow.appendChild(btn);
+    });
+    msgEl.appendChild(actRow);
+
+    // Save plan to memory
+    chatMemory.lastWeeklyPlan = new Date().toISOString();
+    chatMemory.weekGoalEmails = plan.weekGoal?.emails;
+    saveChatMemory();
+
+  } catch(e) {
+    chatRemoveTyping();
+    console.error('Weekly plan error:', e);
+    chatAddMessage('bot', '❌ Error generando el plan. Verifica tu API key de Gemini.');
+  }
+}
+
+function shouldShowWeeklyPlan() {
+  const today = new Date();
+  const isMonday = today.getDay() === 1;
+  const hour = today.getHours();
+  const lastPlan = chatMemory.lastWeeklyPlan;
+  if (!isMonday || hour < 7 || hour > 12) return false;
+  if (!lastPlan) return true;
+  const daysSince = (Date.now() - new Date(lastPlan)) / 86400000;
+  return daysSince >= 6;
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🔍 Smart Filter System — panel toggle + chips
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Config: which filters each section has
+const SF_CONFIG = {
+  leads: [
+    { id:'filter-segment',    label: v => v ? '🏢 '+v : null },
+    { id:'filter-status',     label: v => v ? '📌 '+v : null },
+    { id:'filter-source',     label: v => v === 'search' ? '🔵 Búsqueda' : v === 'import' ? '🟡 Importado' : v === 'manual' ? '🟢 Manual' : null },
+    { id:'filter-score-min',  label: v => v ? '⭐ Score '+v+'+' : null },
+    { id:'filter-date-range', label: v => ({ today:'📅 Hoy', week:'📅 Esta semana', month:'📅 Este mes', '3months':'📅 3 meses' })[v] || null },
+    { id:'filter-next-contact', label: v => ({ overdue:'⚠️ Vencidos', today:'📅 Seguimiento hoy', week:'📅 Seg. esta semana', none:'🚫 Sin fecha' })[v] || null },
+  ],
+  kanban: [
+    { id:'kanban-filter-seg',   label: v => v ? '🏢 '+v : null },
+    { id:'kanban-filter-score', label: v => v ? '⭐ Score '+v+'+' : null },
+    { id:'kanban-filter-overdue', label: v => v ? '⚠️ Solo vencidos' : null, type:'checkbox' },
+  ],
+  tracking: [
+    { id:'tracking-filter-seg',     label: v => v ? '🏢 '+v : null },
+    { id:'tracking-filter-channel', label: v => ({ email:'📧 Email', whatsapp:'💬 WhatsApp' })[v] || null },
+    { id:'tracking-filter-date',    label: v => ({ today:'📅 Hoy', week:'📅 Esta semana', month:'📅 Este mes', '3months':'📅 3 meses' })[v] || null },
+  ],
+  campaigns: [
+    { id:'campaigns-filter-seg',    label: v => v ? '🏢 '+v : null },
+    { id:'campaigns-filter-status', label: v => ({ active:'✅ Con envíos', empty:'❌ Sin envíos', complete:'💯 Completadas' })[v] || null },
+  ],
+  search: [
+    { id:'search-results-has', label: v => ({ email:'✉️ Con email', phone:'📞 Con tel.', web:'🌐 Con web', social:'📱 Con redes', decision:'👤 Con decisor', whatsapp:'💬 Con WhatsApp' })[v] || null },
+  ],
+};
+
+// Render functions per section
+const SF_RENDER = {
+  leads: () => renderLeads(),
+  kanban: () => renderKanban(),
+  tracking: () => renderTracking(),
+  campaigns: () => renderCampaigns(),
+  search: () => applyAdvancedFilters(),
+};
+
+function sfTogglePanel(section) {
+  const panel = document.getElementById(section + '-sf-panel');
+  const btn   = document.getElementById(section + '-more-btn');
+  if (!panel) return;
+  panel.classList.toggle('open');
+  if (btn) btn.classList.toggle('active', panel.classList.contains('open'));
+}
+
+function sfUpdateChips(section) {
+  const config  = SF_CONFIG[section];
+  const chipsEl = document.getElementById(section + '-sf-chips');
+  const badgeEl = document.getElementById(section + '-sf-badge');
+  const moreBtn = document.getElementById(section + '-more-btn');
+  if (!config || !chipsEl) return;
+
+  const chips = [];
+  config.forEach(f => {
+    const el = document.getElementById(f.id);
+    if (!el) return;
+    const val = f.type === 'checkbox' ? (el.checked ? 'true' : '') : el.value;
+    const label = f.label(val);
+    if (label) chips.push({ label, id: f.id, type: f.type });
+  });
+
+  // Also add text search chip
+  const searchInputs = {
+    leads: 'lead-search', kanban: 'kanban-search',
+    tracking: 'tracking-search', campaigns: 'campaigns-search', search: 'search-results-text'
+  };
+  const searchEl = document.getElementById(searchInputs[section]);
+  if (searchEl && searchEl.value.trim()) {
+    chips.push({ label: '🔍 "' + searchEl.value.trim().slice(0,20) + '"', id: searchInputs[section], type: 'text' });
+  }
+
+  chipsEl.innerHTML = chips.map(c => `
+    <span class="sf-chip">
+      ${c.label}
+      <button onclick="sfRemoveFilter('${section}','${c.id}','${c.type||'select'}')" title="Quitar filtro">×</button>
+    </span>`).join('');
+
+  const count = chips.length;
+  if (badgeEl) { badgeEl.textContent = count; badgeEl.style.display = count ? 'inline-block' : 'none'; }
+  if (moreBtn) moreBtn.classList.toggle('has-active', count > 0);
+}
+
+function sfRemoveFilter(section, filterId, type) {
+  const el = document.getElementById(filterId);
+  if (!el) return;
+  if (type === 'checkbox') el.checked = false;
+  else el.value = '';
+  sfUpdateChips(section);
+  if (SF_RENDER[section]) SF_RENDER[section]();
+}
+
 const GORDI_SYSTEM = `Eres Voltflow Assistant, el asistente inteligente integrado en Voltflow — app de prospección comercial B2B para Voltium Madrid (reformas integrales, eficiencia energética y mantenimiento integral de naves industriales en Madrid).
 
 TIENES DOS MODOS DE OPERACIÓN:
@@ -12115,6 +13282,11 @@ CONOCES LA APP AL COMPLETO:
 - Configuración: perfil Voltium, APIs (Google, Hunter, Gemini)
 - Email IA (botón ✨): lee reseñas Google → Gemini genera email hiperpersonalizado con formato
 - Chat: este mismo asistente que puede mejorar la app en tiempo real
+- Control por voz: botón 🎙️ en el chat para hablar directamente
+- Memoria persistente: recuerdas las preferencias del usuario entre sesiones
+- Gráficos en chat: puedes mostrar gráficos de embudo y sectores
+- Modo autónomo: detectas leads urgentes y alertas proactivas
+- Plan semanal: generas planes de acción cada lunes con datos reales
 
 APIs necesarias (todas gratuitas):
 - Google Places: console.cloud.google.com
@@ -12207,6 +13379,15 @@ let chatHistory = [];
 let chatOpen = false;
 let chatInitialized = false;
 let pendingPatch = null;
+let _chatVoiceRecog = null;
+let _chatVoiceActive = false;
+// ── Persistent chat memory ────────────────────────────────────────────────────
+let chatMemory = (() => {
+  try { return JSON.parse(localStorage.getItem('gordi_chat_memory') || '{}'); } catch { return {}; }
+})();
+function saveChatMemory() {
+  localStorage.setItem('gordi_chat_memory', JSON.stringify(chatMemory));
+}
 
 function toggleChat() {
   chatOpen = !chatOpen;
@@ -12215,8 +13396,14 @@ function toggleChat() {
   document.getElementById('chat-notif').style.display = 'none';
   if (chatOpen && !chatInitialized) {
     chatInitialized = true;
-    chatShowDailyBriefing();
+    if (shouldShowWeeklyPlan()) {
+      chatShowDailyBriefing();
+      setTimeout(() => generateWeeklyPlan(), 800);
+    } else {
+      chatShowDailyBriefing();
+    }
   }
+  if (chatOpen) showPendingProactive();
   if (chatOpen) setTimeout(() => document.getElementById('chat-input').focus(), 100);
 }
 
@@ -12488,7 +13675,7 @@ async function chatSend() {
   const isAnalysis = isAnalysisRequest(text);
   const isCoach = isSalesCoachRequest(text);
 
-  let fullUserMessage = richContext + '\n\nMensaje del usuario: ' + text;
+  let fullUserMessage = richContext + buildMemoryContext() + '\n\nMensaje del usuario: ' + text;
 
   // Coach de ventas: añadir contexto del lead mencionado (Mejora 5)
   if (isCoach) {
@@ -12572,8 +13759,12 @@ async function chatSend() {
     // Add quick action buttons if the response is analysis or briefing related
     const msgEl = chatAddMessage('bot', formatted);
 
-    // If analysis response, add quick actions below
+    // Save memory after each exchange
+    extractAndSaveMemory(text, reply);
+
+    // If analysis response, add charts + quick actions
     if (isAnalysis && msgEl) {
+      appendChatCharts(msgEl, null);
       const actBar = document.createElement('div');
       actBar.style.cssText = 'display:flex;gap:.4rem;margin-top:.65rem;flex-wrap:wrap';
       const actions = [
@@ -12639,6 +13830,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initLeadFormDatePicker();
   // Update cloud sync pill
   updateCloudPill();
+  // Proactive check (Mejora 4) — run after app is fully loaded
+  setTimeout(() => runProactiveCheck(), 10000);
   // Auto-pull from JSONBin on load if enabled
   if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
     setTimeout(() => jsonbinPull(false), 1500); // slight delay to let app init
