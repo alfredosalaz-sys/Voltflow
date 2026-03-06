@@ -356,8 +356,9 @@ body { font-size: calc(14px * var(--font-scale)); }
 
 /* ── INTEGRITY GUARDIAN BADGE ── */
 #integrity-badge {
+  display:none !important;
   position:fixed;bottom:1.2rem;left:1.2rem;z-index:9999;
-  display:flex;align-items:center;gap:.45rem;
+  align-items:center;gap:.45rem;
   padding:.35rem .75rem;border-radius:20px;
   font-size:.65rem;font-weight:700;letter-spacing:.04em;
   cursor:pointer;transition:all .2s;
@@ -4793,30 +4794,6 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       </div>
     </div>
 
-    <div class="glass-panel">
-      <div class="panel-header"><h3>📊 Google Sheets — Sincronización automática</h3></div>
-      <p style="color:var(--text-muted);font-size:0.85rem;margin:1rem 0">
-        Sincroniza tus leads con un Google Sheet cada vez que guardas.<br>
-        Comparte con tu equipo o analiza en Looker Studio.<br>
-        <strong>Setup:</strong> Crea un sheet → copia el ID de la URL → autoriza con OAuth.
-      </p>
-      <div class="input-group" style="margin-bottom:.75rem">
-        <input type="text" id="sheets-id-input" placeholder="ID del spreadsheet (de la URL de Sheets)">
-      </div>
-      <div class="input-group" style="margin-bottom:.75rem">
-        <input type="text" id="sheets-client-input" placeholder="Google OAuth Client ID (para autorizar)">
-      </div>
-      <div class="input-group" style="margin-bottom:.75rem">
-        <input type="text" id="sheets-token-input" placeholder="OAuth Token (pegar aquí tras autorizar)">
-      </div>
-      <div style="display:flex;gap:1rem;margin-top:1rem;flex-wrap:wrap;align-items:center">
-        <button class="btn-outline" onclick="saveSheetsConfig()">Guardar config</button>
-        <button class="btn-outline" onclick="initSheetsOAuth()">🔑 Autorizar Google</button>
-        <button class="btn-primary" onclick="syncToSheets()">☁️ Sincronizar ahora</button>
-        <button class="btn-outline" onclick="loadFromSheets()">📥 Cargar desde Sheets</button>
-      </div>
-      <div id="sheets-sync-status" style="font-size:.75rem;color:var(--text-dim);margin-top:.5rem">No configurado</div>
-    </div>
 
 
     <!-- ══ QR SYNC PANEL ══ -->
@@ -4833,7 +4810,6 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">
         <label style="font-size:.78rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">¿Qué incluir en el QR?</label>
         <div style="display:flex;flex-wrap:wrap;gap:.5rem">
-          <label class="qr-check-label"><input type="checkbox" id="qr-inc-jsonbin" checked> ☁️ JSONBin (sincronización)</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-keys" checked> 🔑 API Keys</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-profile" checked> 👤 Perfil corporativo</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-sheets" checked> 📊 Google Sheets config</label>
@@ -4872,47 +4848,6 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
     </div>
 
     <!-- ══ JSONBIN SYNC PANEL ══ -->
-    <div class="glass-panel" style="margin-bottom:1.5rem;border:1px solid rgba(16,217,124,.3);box-shadow:0 0 0 3px rgba(16,217,124,.07)">
-      <div class="panel-header" style="display:flex;align-items:center;justify-content:space-between">
-        <h3>☁️ Sincronización Multi-Dispositivo — JSONBin</h3>
-        <span id="jsonbin-badge" style="font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:6px;background:rgba(16,217,124,.15);color:var(--success);display:none">● Activo</span>
-      </div>
-      <p style="color:var(--text-muted);font-size:.85rem;margin:.75rem 0 1rem">
-        Sincroniza tus leads y datos entre <strong>todos tus dispositivos</strong> automáticamente.<br>
-        Gratis en <a href="https://jsonbin.io" target="_blank" style="color:var(--primary)">jsonbin.io</a> — sin límites para uso personal.<br>
-        <strong>Setup:</strong> Regístrate → API Keys → copia tu <em>Master Key</em>.
-      </p>
-
-      <div class="input-group" style="margin-bottom:.75rem">
-        <label style="font-size:.78rem;color:var(--text-muted)">Master Key de JSONBin</label>
-        <input type="password" id="jsonbin-key-input" placeholder="Pega aquí tu Master Key...">
-      </div>
-      <div class="input-group" style="margin-bottom:.75rem">
-        <label style="font-size:.78rem;color:var(--text-muted)">Bin ID <span style="color:var(--text-dim)">(se genera automáticamente la primera vez)</span></label>
-        <input type="text" id="jsonbin-bin-input" placeholder="Se rellena solo al crear el bin" style="font-size:.78rem">
-      </div>
-
-      <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem">
-        <button class="btn-primary" onclick="saveJsonBinConfig()" style="background:linear-gradient(135deg,#10d97c,#059669)">Guardar configuración</button>
-        <button class="btn-outline" onclick="jsonbinPush(true)" id="btn-jsonbin-push" style="display:none">☁️ Subir datos ahora</button>
-        <button class="btn-outline" onclick="jsonbinPull(true)" id="btn-jsonbin-pull" style="display:none">📥 Descargar datos ahora</button>
-        <button class="btn-outline" onclick="jsonbinTestConnection()" id="btn-jsonbin-test" style="display:none;font-size:.78rem">🔌 Probar conexión</button>
-      </div>
-
-      <!-- Auto-sync toggle -->
-      <div style="display:flex;align-items:center;gap:.75rem;padding:.6rem .85rem;background:rgba(16,217,124,.04);border:1px solid rgba(16,217,124,.15);border-radius:8px;margin-bottom:.75rem" id="jsonbin-auto-row" style="display:none">
-        <label class="toggle-switch" style="margin:0">
-          <input type="checkbox" id="jsonbin-auto-toggle" onchange="toggleJsonBinAuto(this.checked)">
-          <span class="toggle-slider"></span>
-        </label>
-        <div>
-          <div style="font-size:.82rem;font-weight:600;color:var(--text)">Sincronización automática</div>
-          <div style="font-size:.72rem;color:var(--text-dim)">Sube los datos cada vez que guardas un lead, y los descarga al abrir la app</div>
-        </div>
-      </div>
-
-      <div id="jsonbin-status" style="font-size:.78rem;color:var(--text-dim);margin-top:.25rem">No configurado — introduce tu Master Key para empezar</div>
-    </div>
 
     <!-- ── GitHub Sync Panel ── -->
     <div class="glass-panel">
@@ -6558,25 +6493,16 @@ async function jsonbinTestConnection() {
 
 // ── Toggle auto-sync ─────────────────────────────────────────────────────────
 function updateCloudPill() {
-  const key = localStorage.getItem('gordi_jsonbin_key');
-  const auto = localStorage.getItem('gordi_jsonbin_auto') === 'true';
   const pill = document.getElementById('cloud-sync-pill');
   const dot  = document.getElementById('cloud-sync-dot');
   const lbl  = document.getElementById('cloud-sync-label');
   if (!pill) return;
   const ghToken = localStorage.getItem('gordi_gh_token');
   const ghAuto  = localStorage.getItem('gordi_gh_auto') === 'true';
-  const hasSync = key || ghToken;
-  const isAuto  = (auto && key) || (ghAuto && ghToken);
-  if (hasSync) {
+  if (ghToken) {
     pill.style.display = 'flex';
-    if (isAuto) {
-      dot.style.background = 'var(--success)';
-      lbl.textContent = ghToken ? '🐙 GitHub sync' : '☁️ Auto-sync';
-    } else {
-      dot.style.background = 'var(--warning,#f59e0b)';
-      lbl.textContent = '☁️ Manual';
-    }
+    dot.style.background = ghAuto ? 'var(--success)' : 'var(--warning,#f59e0b)';
+    lbl.textContent = ghAuto ? '🐙 GitHub sync' : '🐙 Manual';
   } else {
     pill.style.display = 'none';
   }
@@ -9743,15 +9669,10 @@ function saveLeads() {
   if (_saveLeadsTimer) clearTimeout(_saveLeadsTimer);
   _saveLeadsTimer = setTimeout(() => {
     _saveLeadsTimer = null;
-    if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
-      jsonbinPush(false); // silent push
-    }
     if (localStorage.getItem('gordi_gh_auto') === 'true' && localStorage.getItem('gordi_gh_token')) {
       githubPush(false); // silent GitHub push
     }
-    const _sid = localStorage.getItem('gordi_sheets_id');
-    const _stk = localStorage.getItem('gordi_sheets_token');
-    if (_sid && _stk) syncToSheets(leads);
+
   }, 2000); // wait 2s after last save before pushing to cloud
 }
 
@@ -18852,7 +18773,6 @@ let _qrExpireTimer = null;
 
 function collectQRPayload() {
   const inc = {
-    jsonbin:   document.getElementById('qr-inc-jsonbin')?.checked,
     keys:      document.getElementById('qr-inc-keys')?.checked,
     profile:   document.getElementById('qr-inc-profile')?.checked,
     sheets:    document.getElementById('qr-inc-sheets')?.checked,
@@ -18860,12 +18780,6 @@ function collectQRPayload() {
   };
 
   const payload = { v: 2, t: Date.now(), exp: Date.now() + 5 * 60 * 1000 };
-
-  if (inc.jsonbin) {
-    const jbKey = localStorage.getItem('gordi_jsonbin_key') || '';
-    const jbBin = localStorage.getItem('gordi_jsonbin_bin') || '';
-    if (jbKey) payload.jsonbin = { k: jbKey, b: jbBin };
-  }
 
   if (inc.keys) {
     payload.keys = {
@@ -19051,13 +18965,6 @@ function downloadQR() {
     }
 
     let applied = [];
-
-    if (payload.jsonbin) {
-      if (payload.jsonbin.k) localStorage.setItem('gordi_jsonbin_key', payload.jsonbin.k);
-      if (payload.jsonbin.b) localStorage.setItem('gordi_jsonbin_bin', payload.jsonbin.b);
-      if (payload.jsonbin.k) localStorage.setItem('gordi_jsonbin_auto', 'true');
-      applied.push('☁️ JSONBin');
-    }
 
     if (payload.keys) {
       const map = {
@@ -19621,11 +19528,7 @@ function renderAiRanking(result) {
   </div>
 </div>
 
-<!-- ══ INTEGRITY GUARDIAN ══ -->
-<div id="integrity-badge" class="checking" onclick="openIntegrityModal()" title="Estado de integridad del código">
-  <span id="integrity-icon">⏳</span>
-  <span id="integrity-label">Verificando...</span>
-</div>
+<!-- integrity badge removed -->
 
 <div id="integrity-modal">
   <div class="integrity-box">
@@ -19785,7 +19688,7 @@ const GUARDIAN = {
     'focusMarkDone','generateEmail','geocodeSearch','getCachedEnrich',
     'getCityDistricts','getEnrichTTL','getFocusLeads','getLookalikeSimilarity',
     'getSegmentQueries','handleInlineDrop','handleScanFile','handleSlashCommand',
-    'initLeadsMap','loadAllData','loadFromSheets','logCall','markNotInterested',
+    'initLeadsMap','loadAllData','logCall','markNotInterested',
     'matchEmailToLead','onInboxPaste','onInlinePasteInput','openAiEmailModal',
     'openBriefingModal','openCtxMenu','openFocusMode','openGlobalSearch',
     'openLeadDetail','openLeadDrawer','openObjectivesModal','openQuickNote',
@@ -19795,13 +19698,13 @@ const GUARDIAN = {
     'renderDashboardCharts','renderDrawer','renderFocusList','renderFunnelChart',
     'renderHeatmap','renderInboxResults','renderKanban','renderLeads',
     'renderObjectivesPanel','renderPipelineValue','renderRecentActivity',
-    'renderSectorPerformance','renderSheetsStatus',
-    'renderSignalCorrelation','renderSmartAlert','renderStreakPanel',
+    'renderSectorPerformance','renderSignalCorrelation','renderSmartAlert','renderStreakPanel',
     'renderTemplateList','renderTodayPanel','renderTopLeads','renderTracking',
     'saveCurrentSearch','saveDrawerLead','saveLead','saveLeads','saveLeadDetail',
     'saveVoiceNote','saveScanLead','searchBusinesses','sendBriefingMessage',
     'showToast','showView','startVoiceRecording','stopVoiceRecording',
-    'syncToSheets','todayPostpone','toggleLeadForm','updateFollowupBadge',
+    'syncToSheets','loadFromSheets','renderSheetsStatus',
+    'todayPostpone','toggleLeadForm','updateFollowupBadge',
     'updateInboxBadge','updateStats','updateStreakData',
   ],
 
@@ -19826,7 +19729,7 @@ const GUARDIAN = {
     'voice-fab','voice-modal','scan-fab','scan-modal',
     'focus-mode-overlay','leads-map','briefing-modal',
     'smart-alert','today-panel','signal-corr-panel',
-    'sheets-sync-status','inbox-paste-area','inbox-results-panel',
+    'inbox-paste-area','inbox-results-panel',
   ],
 
   MIN_SCRIPT_LENGTH: 480000,
@@ -20043,17 +19946,7 @@ function closeIntegrityModal() {
 
 // Auto-run on load
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    const result = GUARDIAN.run();
-    GUARDIAN.renderBadge(result);
-    // Silent on OK, toast warning on fail
-    if (!result.allOk) {
-      setTimeout(() => {
-        if (typeof showToast === 'function')
-          showToast('⚠️ Guardian: se detectaron problemas de integridad. Pulsa el badge para ver detalles.');
-      }, 2000);
-    }
-  }, 1200);
+  // Integrity check available manually via openIntegrityModal()
 });
 
 
