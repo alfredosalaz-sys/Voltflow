@@ -6005,16 +6005,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const VOLTFLOW_VERSION = '1.9';
 const VOLTFLOW_DATA_KEYS = [
+  // ── Datos principales ──────────────────────────────────────────────────
   'gordi_leads', 'gordi_email_history', 'gordi_campaigns',
   'gordi_objectives', 'gordi_search_history', 'gordi_templates',
+  // ── API Keys — se sincronizan automáticamente en todos los dispositivos ─
   'gordi_api_key', 'gordi_hunter_key', 'gordi_apollo_key',
   'gordi_claude_key', 'gordi_gemini_key',
+  // ── Gmail alertas ──────────────────────────────────────────────────────
+  'gordi_gmail_email', 'gordi_gmail_client_id', 'gordi_gmail_client_secret',
+  'gordi_gmail_token', 'gordi_gmail_token_ts', 'gordi_gmail_enabled',
+  // ── Perfil de usuario ──────────────────────────────────────────────────
   'gordi_user_name', 'gordi_user_email', 'gordi_user_company',
   'gordi_user_phone', 'gordi_user_web', 'gordi_user_logo',
   'gordi_sender_name', 'gordi_sender_email',
+  // ── Integraciones ──────────────────────────────────────────────────────
   'gordi_sheets_id', 'gordi_sheets_client_id', 'gordi_sheets_token',
+  // ── App preferences ───────────────────────────────────────────────────
   'gordi_pin', 'gordi_streak', 'gordi_tutorial_done',
   'gordi_light_mode', 'gordi_font_scale',
+  // ── Chat memory & agent ───────────────────────────────────────────────
+  'gordi_chat_memory', 'gordi_tts',
 ];
 
 function exportDataSnapshot() {
@@ -6400,6 +6410,11 @@ async function jsonbinPull(showFeedback = true) {
     try { leads = JSON.parse(localStorage.getItem('gordi_leads') || '[]'); } catch { leads = []; }
     try { emailHistory = JSON.parse(localStorage.getItem('gordi_email_history') || '[]'); } catch { emailHistory = []; }
     try { campaigns = JSON.parse(localStorage.getItem('gordi_campaigns') || '[]'); } catch { campaigns = []; }
+    // Restore API keys to memory after pull
+    _gmailToken = localStorage.getItem('gordi_gmail_token') || null;
+    _ttsEnabled = localStorage.getItem('gordi_tts') === 'true';
+    // Refresh settings UI if open
+    try { refreshSettingsUI(); } catch(e) {}
 
     renderLeads(); renderKanban(); updateStats();
     try { renderTracking(); } catch(e) {}
@@ -13910,6 +13925,29 @@ function isOpportunityRequest(text) {
 // ─────────────────────────────────────────────────────────────────────────────
 let _gmailToken = null;
 
+function refreshSettingsUI() {
+  // Re-populate settings inputs from localStorage (called after JSONBin pull)
+  const fields = {
+    'gmail-alert-email':   'gordi_gmail_email',
+    'gmail-client-id':     'gordi_gmail_client_id',
+    'claude-key-input':    'gordi_claude_key',
+  };
+  for (const [elId, lsKey] of Object.entries(fields)) {
+    const el = document.getElementById(elId);
+    const val = localStorage.getItem(lsKey);
+    if (el && val) el.value = val;
+  }
+  // Restore Gmail enabled state
+  const cb = document.getElementById('gmail-alerts-enabled');
+  if (cb) cb.checked = localStorage.getItem('gordi_gmail_enabled') === 'true';
+  // Restore TTS button state
+  const ttsBtn = document.getElementById('tts-toggle-btn');
+  if (ttsBtn) {
+    ttsBtn.style.color = _ttsEnabled ? 'var(--primary)' : 'var(--text-muted)';
+    ttsBtn.style.borderColor = _ttsEnabled ? 'rgba(99,102,241,.5)' : 'rgba(99,102,241,.3)';
+  }
+}
+
 function saveGmailConfig() {
   const email = document.getElementById('gmail-alert-email')?.value.trim();
   const cid   = document.getElementById('gmail-client-id')?.value.trim();
@@ -14856,6 +14894,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-pull from JSONBin on load if enabled
   if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
     setTimeout(() => jsonbinPull(false), 1500); // slight delay to let app init
+  }
+  // First-run on new device: if JSONBin key exists but no local data, auto-pull silently
+  const hasLocalData = !!(localStorage.getItem('gordi_leads') || localStorage.getItem('gordi_api_key'));
+  const hasJsonBin   = !!(localStorage.getItem('gordi_jsonbin_key') && localStorage.getItem('gordi_jsonbin_bin'));
+  if (!hasLocalData && hasJsonBin) {
+    setTimeout(async () => {
+      showToast('🔄 Nuevo dispositivo detectado — restaurando datos...');
+      await jsonbinPull(false);
+      showToast('✅ Todo restaurado automáticamente');
+    }, 2000);
   }
 });
 
