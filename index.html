@@ -3893,6 +3893,7 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
       <button class="bulk-btn" onclick="clearBulkSelection()" style="margin-left:auto;background:rgba(255,255,255,.1)">✕ Cancelar</button>
     </div>
 
+    <div id="leads-pagination" style="display:none;justify-content:center;align-items:center;gap:.75rem;padding:.65rem 0;margin-bottom:.25rem"></div>
     <div class="glass-panel">
       <table class="leads-table" id="leads-table">
         <thead>
@@ -5935,10 +5936,7 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData();
 
   updateDate();
-  renderLeads();
-  renderKanban();
-  updateStats();
-  renderTracking();
+  renderAllFull();
   renderTemplateList();
   renderCampaigns();
   renderDashboardCharts();
@@ -6004,27 +6002,84 @@ document.addEventListener('DOMContentLoaded', () => {
 // Al arrancar por primera vez esta versión, se vuelcan todos los datos automáticamente.
 
 const VOLTFLOW_VERSION = '1.9';
+
+// ══════════════════════════════════════════════════════════════════════════
+// ⚡ PERFORMANCE SYSTEM — debounce renders, smart batching, pagination
+// ══════════════════════════════════════════════════════════════════════════
+
+// Debounce timers
+const _renderTimers = {};
+function debouncedRender(key, fn, delay) {
+  if (_renderTimers[key]) clearTimeout(_renderTimers[key]);
+  _renderTimers[key] = setTimeout(() => { delete _renderTimers[key]; fn(); }, delay || 60);
+}
+
+// Batch multiple render requests — only executes once per animation frame
+const _pendingRenders = new Set();
+let   _rafScheduled   = false;
+function scheduleRender(key) {
+  _pendingRenders.add(key);
+  if (!_rafScheduled) {
+    _rafScheduled = true;
+    requestAnimationFrame(() => {
+      _rafScheduled = false;
+      const toRun = new Set(_pendingRenders);
+      _pendingRenders.clear();
+      if (toRun.has('leads'))    renderLeads();
+      if (toRun.has('kanban'))   renderKanban();
+      if (toRun.has('stats'))    updateStats();
+      if (toRun.has('tracking')) renderTracking();
+      if (toRun.has('charts'))   { try { renderDashboardCharts(); } catch(e){} }
+    });
+  }
+}
+
+// Smart batch: replaces renderLeads();renderKanban();updateStats() pattern
+function renderAll() {
+  scheduleRender('leads');
+  scheduleRender('kanban');
+  scheduleRender('stats');
+}
+function renderAllFull() {
+  scheduleRender('leads');
+  scheduleRender('kanban');
+  scheduleRender('stats');
+  scheduleRender('tracking');
+}
+
+// Pagination for leads table
+const LEADS_PAGE_SIZE = 50;
+let   leadsPage = 0;
+
+// Single-row update — update only the changed row without full re-render
+function updateLeadRow(leadId) {
+  const tbody = document.getElementById('leads-body');
+  if (!tbody) return false;
+  const existingRow = tbody.querySelector(`tr[data-lead-id="${leadId}"]`);
+  if (!existingRow) return false; // row not visible, skip
+  // Just re-render this lead's row by doing a targeted replace
+  const lead = leads.find(l => l.id == leadId);
+  if (!lead) { existingRow.remove(); return true; }
+  // Trigger a lightweight status color update only
+  const bc = lead.score >= 70 ? 'badge-high' : (lead.score >= 40 ? 'badge-mid' : 'badge-low');
+  const sc = (lead.status || 'pendiente').toLowerCase().replace(/ /g, '-');
+  const scoreEl  = existingRow.querySelector('.score-badge');
+  const statusEl = existingRow.querySelector('[class^="status-"]');
+  if (scoreEl)  { scoreEl.className = `score-badge ${bc}`; scoreEl.textContent = lead.score; }
+  if (statusEl) { statusEl.className = `status-${sc}`; statusEl.querySelector('.status-dot') || (statusEl.innerHTML = `<span class="status-dot"></span>${lead.status}`); }
+  return true;
+}
 const VOLTFLOW_DATA_KEYS = [
-  // ── Datos principales ──────────────────────────────────────────────────
   'gordi_leads', 'gordi_email_history', 'gordi_campaigns',
   'gordi_objectives', 'gordi_search_history', 'gordi_templates',
-  // ── API Keys — se sincronizan automáticamente en todos los dispositivos ─
   'gordi_api_key', 'gordi_hunter_key', 'gordi_apollo_key',
   'gordi_claude_key', 'gordi_gemini_key',
-  // ── Gmail alertas ──────────────────────────────────────────────────────
-  'gordi_gmail_email', 'gordi_gmail_client_id', 'gordi_gmail_client_secret',
-  'gordi_gmail_token', 'gordi_gmail_token_ts', 'gordi_gmail_enabled',
-  // ── Perfil de usuario ──────────────────────────────────────────────────
   'gordi_user_name', 'gordi_user_email', 'gordi_user_company',
   'gordi_user_phone', 'gordi_user_web', 'gordi_user_logo',
   'gordi_sender_name', 'gordi_sender_email',
-  // ── Integraciones ──────────────────────────────────────────────────────
   'gordi_sheets_id', 'gordi_sheets_client_id', 'gordi_sheets_token',
-  // ── App preferences ───────────────────────────────────────────────────
   'gordi_pin', 'gordi_streak', 'gordi_tutorial_done',
   'gordi_light_mode', 'gordi_font_scale',
-  // ── Chat memory & agent ───────────────────────────────────────────────
-  'gordi_chat_memory', 'gordi_tts',
 ];
 
 function exportDataSnapshot() {
@@ -6410,13 +6465,8 @@ async function jsonbinPull(showFeedback = true) {
     try { leads = JSON.parse(localStorage.getItem('gordi_leads') || '[]'); } catch { leads = []; }
     try { emailHistory = JSON.parse(localStorage.getItem('gordi_email_history') || '[]'); } catch { emailHistory = []; }
     try { campaigns = JSON.parse(localStorage.getItem('gordi_campaigns') || '[]'); } catch { campaigns = []; }
-    // Restore API keys to memory after pull
-    _gmailToken = localStorage.getItem('gordi_gmail_token') || null;
-    _ttsEnabled = localStorage.getItem('gordi_tts') === 'true';
-    // Refresh settings UI if open
-    try { refreshSettingsUI(); } catch(e) {}
 
-    renderLeads(); renderKanban(); updateStats();
+    renderAll();
     try { renderTracking(); } catch(e) {}
     try { renderDashboardCharts(); } catch(e) {}
 
@@ -9239,12 +9289,15 @@ function toggleAllSearch(checked) {
 
 // ─── VOLCAR A LEADS ───────────────────────────────────────────────────────────
 async function importSelectedSearch() {
-  const segment = document.getElementById('plan-segment').value;
-  const location = document.getElementById('plan-location').value.trim();
+  // Safe fallbacks for segment/location (may be empty in some search modes)
+  const segEl  = document.getElementById('plan-segment');
+  const locEl  = document.getElementById('plan-location');
+  const segment  = segEl?.value  || 'Otros';
+  const location = locEl?.value?.trim() || 'búsqueda';
   const checked = document.querySelectorAll('.search-check:checked');
   const indices = [...new Set([...checked].map(c => parseInt(c.getAttribute('data-index'))))];
 
-  if (!indices.length) { alert('Selecciona al menos una empresa.'); return; }
+  if (!indices.length) { showToast('⚠️ Selecciona al menos una empresa'); return; }
 
   let imported = 0;
   indices.forEach(i => {
@@ -9285,9 +9338,7 @@ async function importSelectedSearch() {
   });
 
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   renderDashboardCharts();
   updateStreakData();
   showToast(`✅ ${imported} empresas volcadas a Leads`);
@@ -9623,9 +9674,7 @@ function saveLead() {
   };
   leads.unshift(lead);
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   renderDashboardCharts();
   document.getElementById('lead-form').reset();
   toggleLeadForm();
@@ -9633,16 +9682,21 @@ function saveLead() {
   showToast('Lead guardado correctamente ✓');
 }
 
+let _saveLeadsTimer = null;
 function saveLeads() {
   localStorage.setItem('gordi_leads', JSON.stringify(leads));
-  // Auto-sync to JSONBin if enabled
-  if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
-    jsonbinPush(false); // silent push
-  }
   _goldenProfile = null; // Invalidar cache lookalike
-  const _sid = localStorage.getItem('gordi_sheets_id');
-  const _stk = localStorage.getItem('gordi_sheets_token');
-  if (_sid && _stk) syncToSheets(leads);
+  // Debounce heavy network calls — batch multiple saves into one push
+  if (_saveLeadsTimer) clearTimeout(_saveLeadsTimer);
+  _saveLeadsTimer = setTimeout(() => {
+    _saveLeadsTimer = null;
+    if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
+      jsonbinPush(false); // silent push
+    }
+    const _sid = localStorage.getItem('gordi_sheets_id');
+    const _stk = localStorage.getItem('gordi_sheets_token');
+    if (_sid && _stk) syncToSheets(leads);
+  }, 2000); // wait 2s after last save before pushing to cloud
 }
 
 function getFilteredLeads() {
@@ -9763,8 +9817,40 @@ function renderLeads() {
     }
   }
 
-  list.forEach(lead => {
+  // Pagination — show LEADS_PAGE_SIZE leads per page for performance
+  const totalLeads  = list.length;
+  const totalPages  = Math.ceil(totalLeads / LEADS_PAGE_SIZE);
+  if (leadsPage >= totalPages) leadsPage = Math.max(0, totalPages - 1);
+  const pageStart   = leadsPage * LEADS_PAGE_SIZE;
+  const pageEnd     = pageStart + LEADS_PAGE_SIZE;
+  const pageList    = list.slice(pageStart, pageEnd);
+
+  // Render pagination controls if needed
+  const paginationEl = document.getElementById('leads-pagination');
+  if (paginationEl) {
+    if (totalPages > 1) {
+      paginationEl.style.display = 'flex';
+      paginationEl.innerHTML = `
+        <button onclick="if(leadsPage>0){leadsPage--;renderLeads()}" ${leadsPage===0?'disabled':''} class="btn-outline btn-sm">← Ant.</button>
+        <span style="font-size:.78rem;color:var(--text-dim)">Página ${leadsPage+1} de ${totalPages} · ${totalLeads} leads</span>
+        <button onclick="if(leadsPage<${totalPages-1}){leadsPage++;renderLeads()}" ${leadsPage===totalPages-1?'disabled':''} class="btn-outline btn-sm">Sig. →</button>`;
+    } else {
+      paginationEl.style.display = 'none';
+    }
+  }
+
+  // Update count bar
+  const countBar = document.getElementById('leads-count-bar');
+  if (countBar) {
+    const active = leads.filter(l=>!l.archived).length;
+    countBar.textContent = totalLeads < active
+      ? `${totalLeads} de ${active} leads · ${active - totalLeads} filtrados`
+      : `${active} leads activos`;
+  }
+
+  pageList.forEach(lead => {
     const tr = document.createElement('tr');
+    tr.setAttribute('data-lead-id', lead.id);
     const bc = lead.score >= 70 ? 'badge-high' : (lead.score >= 40 ? 'badge-mid' : 'badge-low');
     const sc = (lead.status || 'pendiente').toLowerCase().replace(' ', '-');
     const scoreColor = lead.score >= 70 ? '#10d97c' : (lead.score >= 40 ? '#f59e0b' : '#ef4444');
@@ -9838,7 +9924,7 @@ function renderLeads() {
             onblur="saveInlineEmail(this)"
             onkeydown="if(event.key==='Enter'){this.blur();}"
           >
-          ${lead.email ? `<button onclick="copyEmail('${lead.email}',event)" title="Copiar email" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:1px 3px;border-radius:4px;flex-shrink:0;line-height:1;transition:color .15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-dim)'">⧉</button>` : ''}
+          <button onclick="const v=this.previousElementSibling?.value||'';if(v){navigator.clipboard.writeText(v).catch(()=>{const t=document.createElement('textarea');t.value=v;document.body.appendChild(t);t.select();document.execCommand('copy');document.body.removeChild(t)});showToast('📋 '+v)} else showToast('⚠️ Sin email')" title="Copiar email al portapapeles" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:1px 3px;border-radius:4px;flex-shrink:0;line-height:1;transition:color .15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-dim)'">⧉</button>
         </div>
         ${lead.phone ? `<div style="display:flex;align-items:center;gap:.35rem">📞 ${lead.phone}${lead.whatsapp ? ` <button onclick="openWhatsAppModal('${lead.id}',event)" title="Enviar WhatsApp" style="background:none;border:none;cursor:pointer;font-size:.85rem;padding:0;line-height:1;color:#25D366">💬</button>` : ''}</div>` : ''}
       </td>
@@ -9880,9 +9966,7 @@ function deleteLead(id) {
   leads = leads.filter(l => l.id != id);
   undoBuffer = lead;
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   showUndoToast(`Lead "${lead.company}" eliminado`);
 }
 
@@ -9902,9 +9986,7 @@ function undoDelete() {
   leads.unshift(undoBuffer);
   undoBuffer = null;
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   document.getElementById('undo-toast').classList.remove('show');
   showToast('Lead recuperado ✓');
 }
@@ -9928,9 +10010,7 @@ function archiveLead(id) {
   if (!lead) return;
   lead.archived = true;
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   showToast(`${lead.company} archivado`);
 }
 
@@ -9941,9 +10021,7 @@ function bulkArchive() {
   });
   saveLeads();
   clearBulkSelection();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   showToast(`${selectedLeadIds.size} leads archivados`);
 }
 
@@ -10015,6 +10093,26 @@ function saveInlineEmail(input) {
       } else if (!val && oldSendBtn) {
         oldSendBtn.remove();
       }
+    }
+  }
+  // Also update the copy button in the same row
+  if (row) {
+    const emailWrap = input.parentElement;
+    const oldCopyBtn = emailWrap?.querySelector('button[title="Copiar email"]');
+    if (val && !oldCopyBtn) {
+      const copyBtn = document.createElement('button');
+      copyBtn.title = 'Copiar email';
+      copyBtn.textContent = '⧉';
+      copyBtn.style.cssText = 'background:none;border:none;cursor:pointer;color:var(--text-dim);padding:1px 3px;border-radius:4px;flex-shrink:0;line-height:1;transition:color .15s';
+      copyBtn.onmouseover = () => copyBtn.style.color = 'var(--primary)';
+      copyBtn.onmouseout  = () => copyBtn.style.color = 'var(--text-dim)';
+      copyBtn.onclick = (e) => copyEmail(val, e);
+      emailWrap?.appendChild(copyBtn);
+    } else if (!val && oldCopyBtn) {
+      oldCopyBtn.remove();
+    } else if (val && oldCopyBtn) {
+      // Update existing copy button with new email
+      oldCopyBtn.onclick = (e) => copyEmail(val, e);
     }
   }
   showToast(val ? 'Email guardado ✓' : 'Email eliminado');
@@ -10141,9 +10239,7 @@ function saveLeadDetail(id) {
   }
   lead.score = recalculateLeadScore(lead);
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   closeLead();
   showToast('Lead actualizado ✓');
 }
@@ -10163,15 +10259,13 @@ function logCall(id) {
 function markNotInterested(id) {
   const lead = leads.find(l => l.id == id);
   if (!lead) return;
-  lead.status = 'No interesa';
-  lead.status_date = new Date().toISOString();
-  addActivityLog(id, 'Marcado como No interesa');
-  saveLeads();
-  closeLead();
-  renderLeads();
-  renderKanban();
-  updateStats();
-  showToast('Lead marcado como No interesa');
+  confirmStatusChange(lead, 'No interesa', () => {
+    lead.status = 'No interesa';
+    lead.status_date = new Date().toISOString();
+    addActivityLog(id, 'Marcado como No interesa');
+    saveLeads(); closeLead(); renderAll();
+    showToast('Lead marcado como No interesa');
+  });
 }
 
 function closeLead() { document.getElementById('lead-modal').style.display = 'none'; }
@@ -10257,16 +10351,13 @@ function generateEmail(id) {
     lead.ttfc_hours = Math.round((Date.now() - new Date(lead.date)) / 3600000);
   }
   const oldStatus = lead.status;
-  lead.status = 'Visita';
-  lead.status_date = new Date().toISOString();
-  addActivityLog(lead.id, `✉️ Email plantilla enviado: "${subject}"`);
-  saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
-  renderTracking();
-  renderRecentActivity();
-  updateStreakData();
+  const _applyVisita = () => {
+    lead.status = 'Visita';
+    lead.status_date = new Date().toISOString();
+    addActivityLog(lead.id, `✉️ Email plantilla enviado: "${subject}"`);
+    saveLeads(); renderAll(); renderTracking(); renderRecentActivity(); updateStreakData();
+  };
+  confirmStatusChange(lead, 'Visita', _applyVisita);
 }
 
 // ============ STATS ============
@@ -10685,18 +10776,18 @@ function dropLead(e, newStatus) {
   const lead = leads.find(l => l.id == draggedId);
   if (lead) {
     const oldStatus = lead.status;
-    lead.status = newStatus;
-    lead.status_date = new Date().toISOString();
-    addActivityLog(lead.id, `Pipeline: ${oldStatus} → ${newStatus}`);
-    applySequenceRule(lead, newStatus); // MEJORA 2
-    saveLeads();
-    renderKanban();
-    renderLeads();
-    updateStats();
-    updateStreakData();
-    showToast(`${lead.company} → ${newStatus}`);
+    if (oldStatus === newStatus) return;
+    confirmStatusChange(lead, newStatus, () => {
+      lead.status = newStatus;
+      lead.status_date = new Date().toISOString();
+      addActivityLog(lead.id, `Pipeline: ${oldStatus} → ${newStatus}`);
+      applySequenceRule(lead, newStatus);
+      saveLeads();
+      renderKanban();
+      renderLeads();
+      updateStats();
+    });
   }
-  draggedId = null;
   document.querySelectorAll('.kanban-card.dragging').forEach(c => c.classList.remove('dragging'));
 }
 
@@ -10978,9 +11069,7 @@ function importSelectedLeads() {
   if (!selected.length) { alert('Selecciona al menos un lead.'); return; }
   leads = [...selected, ...leads];
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   renderDashboardCharts();
   updateStreakData();
   document.getElementById('import-preview').style.display = 'none';
@@ -11154,9 +11243,7 @@ function clearAllLeads() {
   if (!confirm('⚠️ ¿Borrar TODOS los leads? Esta acción no se puede deshacer.')) return;
   leads = [];
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   renderDashboardCharts();
   showToast('Todos los leads eliminados');
 }
@@ -11317,11 +11404,61 @@ function selectPainOption(el, idx) {
   document.getElementById('btn-confirm-pain').disabled = false;
 }
 
-function confirmPainAndGenerate() {
+async function confirmPainAndGenerate() {
   if (_selectedPainIndex === null || !_painPickerLead) return;
   const chosen = _painPickerOptions[_selectedPainIndex];
   hidePainPicker();
+  // Generate 3 subject line options based on chosen pain BEFORE full email
+  await preGenerateSubjects(_painPickerLead, chosen);
   runAiEmailGeneration(_painPickerLead, chosen);
+}
+
+async function preGenerateSubjects(lead, painCtx) {
+  const claudeKey = localStorage.getItem('gordi_claude_key');
+  if (!claudeKey || !painCtx) return;
+  try {
+    const prompt = `Empresa: ${lead.company} | Sector: ${lead.segment}
+Ángulo elegido: "${painCtx.title}" — ${painCtx.why}
+
+Genera EXACTAMENTE 3 asuntos de email B2B para este ángulo. Cortos, sin spam, directos.
+Responde SOLO JSON: {"subjects":["asunto1","asunto2","asunto3"]}`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${claudeKey}`,
+      { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ contents:[{parts:[{text:prompt}]}], generationConfig:{temperature:0.7,maxOutputTokens:200} }) }
+    );
+    const data = await res.json();
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    const subjects = parsed.subjects || [];
+    if (!subjects.length) return;
+
+    // Show subjects immediately in the result area (partial preview)
+    const subjectLabels = ['💛 Emocional', '📊 Racional', '🎯 Intriga'];
+    const subjectList = document.getElementById('ai-subjects-list');
+    if (subjectList) {
+      subjectList.innerHTML = subjects.map((s, i) => `
+        <div onclick="selectAiSubject(this,'${s.replace(/'/g,"&#39;")}')"
+          style="cursor:pointer;padding:.5rem .75rem;border-radius:8px;border:1px solid var(--glass-border);
+          background:var(--glass);font-size:.82rem;display:flex;gap:.5rem;align-items:center;justify-content:space-between;
+          transition:border-color .15s,background .15s"
+          class="subject-option${i===0?' selected-subject':''}">
+          <div style="display:flex;gap:.5rem;align-items:flex-start;flex:1">
+            <span style="font-size:.7rem;color:var(--text-muted);white-space:nowrap;padding-top:1px">${subjectLabels[i]||'✏️'}</span>
+            <span>${s}</span>
+          </div>
+          <button onclick="event.stopPropagation();copySubjectOption('${s.replace(/'/g,"&#39;")}');" title="Copiar asunto"
+            style="background:none;border:none;cursor:pointer;font-size:.75rem;color:var(--text-dim);padding:.1rem .3rem;border-radius:4px;flex-shrink:0"
+            onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-dim)'">📋</button>
+        </div>`).join('');
+      const firstOut = document.getElementById('ai-subject-out');
+      if (firstOut) firstOut.value = subjects[0] || '';
+    }
+  } catch(e) {
+    console.warn('preGenerateSubjects error:', e);
+  }
 }
 
 function skipPainPicker() {
@@ -11332,6 +11469,10 @@ function skipPainPicker() {
 
 function hidePainPicker() {
   document.getElementById('ai-pain-picker').style.display = 'none';
+  // Show the loading state so screen isn't blank while email generates
+  document.getElementById('ai-loading').style.display = 'block';
+  document.getElementById('ai-result').style.display  = 'none';
+  document.getElementById('ai-error').style.display   = 'none';
 }
 
 // ── CONTACT CALENDAR GENERATION ──────────────────────────────────────────────
@@ -12532,10 +12673,14 @@ async function copyHtmlEmail() {
     // Registrar en historial
     const lead = leads.find(l => l.id == aiCurrentLeadId);
     if (lead) {
-      lead.status = 'Contactado';
-      emailHistory.unshift({ id: Date.now(), company: lead.company, email: lead.email, segment: lead.segment, date: new Date().toISOString(), status: 'Preparado (IA)', notes: `Asunto: ${subject}` });
+      const _doContactado = () => {
+        lead.status = 'Contactado';
+        lead.status_date = new Date().toISOString();
+        emailHistory.unshift({ id: Date.now(), company: lead.company, email: lead.email, segment: lead.segment, date: new Date().toISOString(), status: 'Preparado (IA)', notes: `Asunto: ${subject}` });
       localStorage.setItem('gordi_email_history', JSON.stringify(emailHistory));
-      saveLeads(); renderLeads(); renderKanban(); updateStats(); renderTracking();
+        saveLeads(); renderAll(); renderTracking();
+      };
+      confirmStatusChange(lead, 'Contactado', _doContactado);
     }
   } catch(e) {
     // Fallback: copiar texto plano
@@ -12584,13 +12729,19 @@ function sendAiEmail() {
     lead.ttfc_hours = Math.round((Date.now() - new Date(lead.date)) / 3600000);
   }
   const oldStatus = lead.status;
-  lead.status = 'Visita';
-  lead.status_date = new Date().toISOString();
-  addActivityLog(lead.id, `✉️ Email IA enviado: "${subject}"`);
-  saveLeads(); renderLeads(); renderKanban(); updateStats(); renderTracking();
-  updateStreakData();
-  closeAiModal();
-  showToast('✉️ Email abierto en tu gestor de correo');
+  const _doSend = () => {
+    lead.status_date = new Date().toISOString();
+    addActivityLog(lead.id, `✉️ Email IA enviado: "${subject}"`);
+    saveLeads(); renderAll(); renderTracking();
+    updateStreakData();
+    closeAiModal();
+    showToast('✉️ Email abierto en tu gestor de correo');
+  };
+  if (oldStatus !== 'Visita') {
+    confirmStatusChange(lead, 'Visita', () => { lead.status = 'Visita'; _doSend(); });
+  } else {
+    _doSend();
+  }
 }
 
 // ── Regenerar ─────────────────────────────────────────────────────────────────
@@ -13925,29 +14076,6 @@ function isOpportunityRequest(text) {
 // ─────────────────────────────────────────────────────────────────────────────
 let _gmailToken = null;
 
-function refreshSettingsUI() {
-  // Re-populate settings inputs from localStorage (called after JSONBin pull)
-  const fields = {
-    'gmail-alert-email':   'gordi_gmail_email',
-    'gmail-client-id':     'gordi_gmail_client_id',
-    'claude-key-input':    'gordi_claude_key',
-  };
-  for (const [elId, lsKey] of Object.entries(fields)) {
-    const el = document.getElementById(elId);
-    const val = localStorage.getItem(lsKey);
-    if (el && val) el.value = val;
-  }
-  // Restore Gmail enabled state
-  const cb = document.getElementById('gmail-alerts-enabled');
-  if (cb) cb.checked = localStorage.getItem('gordi_gmail_enabled') === 'true';
-  // Restore TTS button state
-  const ttsBtn = document.getElementById('tts-toggle-btn');
-  if (ttsBtn) {
-    ttsBtn.style.color = _ttsEnabled ? 'var(--primary)' : 'var(--text-muted)';
-    ttsBtn.style.borderColor = _ttsEnabled ? 'rgba(99,102,241,.5)' : 'rgba(99,102,241,.3)';
-  }
-}
-
 function saveGmailConfig() {
   const email = document.getElementById('gmail-alert-email')?.value.trim();
   const cid   = document.getElementById('gmail-client-id')?.value.trim();
@@ -14248,7 +14376,7 @@ async function runAutoMaintenance(silent) {
   });
 
   const total = report.archived+report.duplicates+report.rescored+report.cleaned;
-  if (total > 0) { saveLeads(); renderLeads(); renderKanban(); updateStats(); }
+  if (total > 0) { saveLeads(); renderAll(); }
 
   if (!silent) {
     const lines = [];
@@ -14284,6 +14412,34 @@ async function sendProactiveAlert(lead, reason) {
 
 function isChacha(text) {
   return /mant[ei]nimiento|limpia|duplicad|archiva.*auto|resumen.*email|env[ií]a.*email|m[áa]ndame.*email|briefing.*email|alerta.*gmail/i.test(text);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 🔒 confirmStatusChange — siempre pregunta antes de cambiar estado
+// ══════════════════════════════════════════════════════════════════════════════
+function confirmStatusChange(lead, newStatus, onConfirm) {
+  if (lead.status === newStatus) { onConfirm(); return; }
+  const modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)';
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--glass-border);border-radius:16px;padding:1.5rem;max-width:360px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.4)">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.5rem">¿Cambiar estado?</div>
+      <div style="font-size:.85rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.5">
+        <strong>${lead.company}</strong><br>
+        <span style="color:var(--text-dim)">${lead.status}</span>
+        <span style="color:var(--primary);margin:0 .4rem">→</span>
+        <strong style="color:var(--text)">${newStatus}</strong>
+      </div>
+      <div style="display:flex;gap:.75rem">
+        <button id="csc-yes" class="btn-primary" style="flex:1">✓ Sí, cambiar</button>
+        <button id="csc-no" class="btn-outline" style="flex:1">✕ Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#csc-yes').onclick = () => { modal.remove(); onConfirm(); };
+  modal.querySelector('#csc-no').onclick = () => { modal.remove(); renderKanban(); };
+  modal.onclick = (e) => { if (e.target === modal) { modal.remove(); renderKanban(); } };
 }
 
 const GORDI_SYSTEM = `Eres Voltflow Assistant, el asistente inteligente integrado en Voltflow — app de prospección comercial B2B para Voltium Madrid (reformas integrales, eficiencia energética y mantenimiento integral de naves industriales en Madrid).
@@ -14447,7 +14603,7 @@ function chatAddMessage(role, html, extra) {
   el.appendChild(div);
   el.scrollTop = el.scrollHeight;
   // 🗣️ TTS: speak bot replies
-  if (role === 'bot') speakText(html);
+  if (role === 'bot') debouncedRender('tts', () => speakText(html), 100);
   return div;
 }
 
@@ -14894,16 +15050,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Auto-pull from JSONBin on load if enabled
   if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
     setTimeout(() => jsonbinPull(false), 1500); // slight delay to let app init
-  }
-  // First-run on new device: if JSONBin key exists but no local data, auto-pull silently
-  const hasLocalData = !!(localStorage.getItem('gordi_leads') || localStorage.getItem('gordi_api_key'));
-  const hasJsonBin   = !!(localStorage.getItem('gordi_jsonbin_key') && localStorage.getItem('gordi_jsonbin_bin'));
-  if (!hasLocalData && hasJsonBin) {
-    setTimeout(async () => {
-      showToast('🔄 Nuevo dispositivo detectado — restaurando datos...');
-      await jsonbinPull(false);
-      showToast('✅ Todo restaurado automáticamente');
-    }, 2000);
   }
 });
 
@@ -15444,9 +15590,7 @@ function bulkChangeStatus(newStatus) {
   });
   saveLeads();
   clearBulkSelection();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   showToast(`Estado actualizado a "${newStatus}"`);
 }
 function bulkExport() {
@@ -16074,7 +16218,7 @@ function executeLocalImport(mode) {
     saveLeads();
     localStorage.setItem('gordi_email_history', JSON.stringify(emailHistory));
     localStorage.setItem('gordi_campaigns', JSON.stringify(campaigns));
-    renderLeads(); renderKanban(); updateStats(); renderDashboardCharts(); renderTracking(); renderCampaigns();
+    renderAll(); renderDashboardCharts(); renderTracking(); renderCampaigns();
     closeImportModal();
     showToast(`✅ Combinado: +${added} leads nuevos importados`);
 
@@ -16085,7 +16229,7 @@ function executeLocalImport(mode) {
     saveLeads();
     localStorage.setItem('gordi_email_history', JSON.stringify(emailHistory));
     localStorage.setItem('gordi_campaigns', JSON.stringify(campaigns));
-    renderLeads(); renderKanban(); updateStats(); renderDashboardCharts(); renderTracking(); renderCampaigns();
+    renderAll(); renderDashboardCharts(); renderTracking(); renderCampaigns();
     closeImportModal();
     showToast(`✅ ${leads.length} leads cargados desde el storage`);
 
@@ -16198,7 +16342,7 @@ function restoreBackup(event) {
       localStorage.setItem('gordi_campaigns', JSON.stringify(campaigns));
       localStorage.setItem('gordi_objectives', JSON.stringify(objectives));
       localStorage.setItem('gordi_templates', JSON.stringify(emailTemplates));
-      renderLeads(); renderKanban(); updateStats(); renderDashboardCharts();
+      renderAll(); renderDashboardCharts();
       renderTracking(); renderCampaigns(); renderTemplateList();
       showToast(`Backup restaurado: ${leads.length} leads ✓`);
     } catch { alert('Error al leer el archivo. Asegúrate de que es un backup válido de Voltflow.'); }
@@ -16225,9 +16369,7 @@ function cleanObsoleteLeads() {
   if (!confirm(`Hay ${old.length} leads en "Pendiente" hace más de 90 días. ¿Archivarlos todos?`)) return;
   old.forEach(l => l.archived = true);
   saveLeads();
-  renderLeads();
-  renderKanban();
-  updateStats();
+  renderAll();
   showToast(`${old.length} leads archivados ✓`);
 }
 
@@ -16517,12 +16659,19 @@ ${raw.slice(0, 1500)}`;
   }
 
   // Apply all 4 actions
-  // 1. Estado → Respuesta del cliente
+  // 1. Estado → Respuesta del cliente (con confirmación)
   const oldStatus = lead.status;
+  const _applyResp1 = () => {
+    if (!['Respuesta del cliente','Visita','Entrega de presupuesto','Cerrado'].includes(lead.status)) {
+      lead.status = 'Respuesta del cliente';
+      lead.status_date = new Date().toISOString();
+      addActivityLog(lead.id, `Estado: ${oldStatus} → Respuesta del cliente`);
+    }
+  };
   if (!['Respuesta del cliente','Visita','Entrega de presupuesto','Cerrado'].includes(lead.status)) {
-    lead.status = 'Respuesta del cliente';
-    lead.status_date = new Date().toISOString();
-    addActivityLog(lead.id, `Estado: ${oldStatus} → Respuesta del cliente`);
+    confirmStatusChange(lead, 'Respuesta del cliente', _applyResp1);
+  } else {
+    _applyResp1();
   }
 
   // 2. Nota con extracto
@@ -16553,7 +16702,7 @@ ${raw.slice(0, 1500)}`;
   localStorage.setItem('gordi_email_history', JSON.stringify(emailHistory));
 
   lead.score = recalculateLeadScore(lead);
-  saveLeads(); renderLeads(); renderKanban(); updateStats(); renderTracking();
+  saveLeads(); renderAll(); renderTracking();
   updateFollowupBadge();
 
   // Visual feedback and refresh drawer
@@ -16788,12 +16937,19 @@ function applyInboxMatch(emailAddr, leadId, subject, body, date) {
   const lead = leads.find(l => l.id == leadId);
   if (!lead) return;
 
-  // 1. Cambiar estado
+  // 1. Cambiar estado (con confirmación)
   const oldStatus = lead.status;
+  const _applyResp2 = () => {
+    if (!['Respuesta del cliente','Visita','Entrega de presupuesto','Cerrado'].includes(lead.status)) {
+      lead.status = 'Respuesta del cliente';
+      lead.status_date = new Date().toISOString();
+      addActivityLog(lead.id, `Estado cambiado: ${oldStatus} → Respuesta del cliente`);
+    }
+  };
   if (!['Respuesta del cliente','Visita','Entrega de presupuesto','Cerrado'].includes(lead.status)) {
-    lead.status = 'Respuesta del cliente';
-    lead.status_date = new Date().toISOString();
-    addActivityLog(lead.id, `Estado cambiado: ${oldStatus} → Respuesta del cliente`);
+    confirmStatusChange(lead, 'Respuesta del cliente', _applyResp2);
+  } else {
+    _applyResp2();
   }
 
   // 2. Guardar extracto en notas
@@ -16824,7 +16980,7 @@ function applyInboxMatch(emailAddr, leadId, subject, body, date) {
   localStorage.setItem('gordi_email_history', JSON.stringify(emailHistory));
 
   lead.score = recalculateLeadScore(lead);
-  saveLeads(); renderLeads(); renderKanban(); updateStats(); renderTracking();
+  saveLeads(); renderAll(); renderTracking();
   updateFollowupBadge();
 }
 
@@ -17025,14 +17181,19 @@ function saveVoiceNote() {
     lead.notes = (lead.notes ? lead.notes + '\n' : '') + ts + r.note;
     if (r.status && STATUS_LIST.includes(r.status)) {
       const old = lead.status;
-      lead.status = r.status;
-      lead.status_date = new Date().toISOString();
-      addActivityLog(lead.id, `Estado cambiado por voz: ${old} → ${r.status}`);
+      const _applyVoice = () => {
+        lead.status = r.status;
+        lead.status_date = new Date().toISOString();
+        addActivityLog(lead.id, `Estado cambiado por voz: ${old} → ${r.status}`);
+      };
+      if (old !== r.status) {
+        confirmStatusChange(lead, r.status, _applyVoice);
+      }
     }
     if (r.next_contact && !lead.next_contact) lead.next_contact = r.next_contact;
     addActivityLog(lead.id, `🎙️ Nota de voz registrada`);
     lead.score = recalculateLeadScore(lead);
-    saveLeads(); renderLeads(); renderKanban(); updateStats();
+    saveLeads(); renderAll();
     showToast(`✅ Nota guardada en ${lead.company}`);
   } else {
     // No lead found — offer to create or copy note
@@ -17860,15 +18021,17 @@ function closeCtxMenu() {
 function ctxSetStatus(leadId, status) {
   const lead = leads.find(l => l.id == leadId);
   if (!lead) return;
-  const old = lead.status;
-  lead.status = status;
-  lead.status_date = new Date().toISOString();
-  addActivityLog(leadId, `Estado cambiado: ${old} → ${status}`);
-  applySequenceRule(lead, status); // MEJORA 2
-  lead.score = recalculateLeadScore(lead);
-  saveLeads(); renderLeads(); renderKanban(); updateStats();
-  showToast(`${lead.company} → ${status} ✓`);
   closeCtxMenu();
+  confirmStatusChange(lead, status, () => {
+    const old = lead.status;
+    lead.status = status;
+    lead.status_date = new Date().toISOString();
+    addActivityLog(leadId, `Estado cambiado: ${old} → ${status}`);
+    applySequenceRule(lead, status);
+    lead.score = recalculateLeadScore(lead);
+    saveLeads(); renderAll();
+    showToast(`${lead.company} → ${status} ✓`);
+  });
 }
 
 function ctxOpenDetail(leadId) {
@@ -18011,7 +18174,7 @@ function saveDrawerLead(id) {
     applySequenceRule(lead, lead.status); // MEJORA 2
   }
   lead.score = recalculateLeadScore(lead);
-  saveLeads(); renderLeads(); renderKanban(); updateStats();
+  saveLeads(); renderAll();
   showToast('Lead guardado ✓');
   updateFollowupBadge();
 }
