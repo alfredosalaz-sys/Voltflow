@@ -4833,6 +4833,7 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem">
         <label style="font-size:.78rem;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em">¿Qué incluir en el QR?</label>
         <div style="display:flex;flex-wrap:wrap;gap:.5rem">
+          <label class="qr-check-label"><input type="checkbox" id="qr-inc-jsonbin" checked> ☁️ JSONBin (sincronización)</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-keys" checked> 🔑 API Keys</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-profile" checked> 👤 Perfil corporativo</label>
           <label class="qr-check-label"><input type="checkbox" id="qr-inc-sheets" checked> 📊 Google Sheets config</label>
@@ -4911,6 +4912,52 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       </div>
 
       <div id="jsonbin-status" style="font-size:.78rem;color:var(--text-dim);margin-top:.25rem">No configurado — introduce tu Master Key para empezar</div>
+    </div>
+
+    <!-- ── GitHub Sync Panel ── -->
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h3>🐙 GitHub — Sincronización automática (gratis e ilimitada)</h3>
+        <span id="github-badge" style="font-size:.7rem;font-weight:700;padding:.2rem .55rem;border-radius:6px;background:rgba(16,217,124,.15);color:var(--success);display:none">✓ Activo</span>
+      </div>
+      <p style="color:var(--text-muted);font-size:.85rem;margin:.75rem 0 1rem">
+        Guarda tus datos directamente en tu repositorio de GitHub. <strong>Gratis, ilimitado, sin caducidad.</strong><br>
+        <strong>Setup (2 min):</strong>
+        <a href="https://github.com/settings/tokens/new?description=Voltflow&scopes=repo" target="_blank" style="color:var(--primary)">Crear token aquí</a>
+        → selecciona scope <code style="background:var(--glass);padding:1px 5px;border-radius:4px">repo</code> → copia el token.
+      </p>
+      <div style="display:grid;gap:.75rem;margin-bottom:1rem">
+        <div class="input-group">
+          <label>GitHub Personal Access Token</label>
+          <input type="password" id="gh-token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+            value="">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+          <div class="input-group">
+            <label>Usuario GitHub</label>
+            <input type="text" id="gh-user-input" placeholder="alfredosalaz-sys"
+              value="">
+          </div>
+          <div class="input-group">
+            <label>Repositorio</label>
+            <input type="text" id="gh-repo-input" placeholder="Voltflow"
+              value="">
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+        <button class="btn-primary" onclick="saveGithubConfig()">Guardar y conectar</button>
+        <button class="btn-outline" onclick="githubPush(true)">⬆ Subir ahora</button>
+        <button class="btn-outline" onclick="githubPull(true)">⬇ Descargar ahora</button>
+        <div id="github-status" style="font-size:.82rem;color:var(--text-muted)"></div>
+      </div>
+      <div style="margin-top:1rem;display:flex;align-items:center;gap:.5rem">
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.82rem">
+          <input type="checkbox" id="github-auto-sync" onchange="toggleGithubAuto(this.checked)"
+            style="accent-color:var(--primary)">
+          Sincronización automática (sube al guardar, descarga al abrir)
+        </label>
+      </div>
     </div>
 
     <div class="glass-panel">
@@ -6080,6 +6127,8 @@ const VOLTFLOW_DATA_KEYS = [
   'gordi_sheets_id', 'gordi_sheets_client_id', 'gordi_sheets_token',
   'gordi_pin', 'gordi_streak', 'gordi_tutorial_done',
   'gordi_light_mode', 'gordi_font_scale',
+  // ── GitHub sync ──────────────────────────────────────────────────────
+  'gordi_gh_token', 'gordi_gh_user', 'gordi_gh_repo', 'gordi_gh_auto',
 ];
 
 function exportDataSnapshot() {
@@ -6515,11 +6564,15 @@ function updateCloudPill() {
   const dot  = document.getElementById('cloud-sync-dot');
   const lbl  = document.getElementById('cloud-sync-label');
   if (!pill) return;
-  if (key) {
+  const ghToken = localStorage.getItem('gordi_gh_token');
+  const ghAuto  = localStorage.getItem('gordi_gh_auto') === 'true';
+  const hasSync = key || ghToken;
+  const isAuto  = (auto && key) || (ghAuto && ghToken);
+  if (hasSync) {
     pill.style.display = 'flex';
-    if (auto) {
+    if (isAuto) {
       dot.style.background = 'var(--success)';
-      lbl.textContent = '☁️ Auto-sync';
+      lbl.textContent = ghToken ? '🐙 GitHub sync' : '☁️ Auto-sync';
     } else {
       dot.style.background = 'var(--warning,#f59e0b)';
       lbl.textContent = '☁️ Manual';
@@ -9692,6 +9745,9 @@ function saveLeads() {
     _saveLeadsTimer = null;
     if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
       jsonbinPush(false); // silent push
+    }
+    if (localStorage.getItem('gordi_gh_auto') === 'true' && localStorage.getItem('gordi_gh_token')) {
+      githubPush(false); // silent GitHub push
     }
     const _sid = localStorage.getItem('gordi_sheets_id');
     const _stk = localStorage.getItem('gordi_sheets_token');
@@ -14442,6 +14498,195 @@ function confirmStatusChange(lead, newStatus, onConfirm) {
   modal.onclick = (e) => { if (e.target === modal) { modal.remove(); renderKanban(); } };
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// 🐙 GITHUB SYNC — almacenamiento gratis e ilimitado en tu propio repo
+// ══════════════════════════════════════════════════════════════════════════
+const GITHUB_DATA_FILE = 'voltflow-data.json';
+
+function getGithubConfig() {
+  return {
+    token: localStorage.getItem('gordi_gh_token') || '',
+    user:  localStorage.getItem('gordi_gh_user')  || '',
+    repo:  localStorage.getItem('gordi_gh_repo')  || '',
+  };
+}
+
+function setGithubStatus(msg, color) {
+  const el = document.getElementById('github-status');
+  if (el) { el.textContent = msg; el.style.color = color || 'var(--text-muted)'; }
+}
+
+function saveGithubConfig() {
+  const token = document.getElementById('gh-token-input')?.value.trim();
+  const user  = document.getElementById('gh-user-input')?.value.trim();
+  const repo  = document.getElementById('gh-repo-input')?.value.trim();
+  if (!token || !user || !repo) {
+    setGithubStatus('⚠️ Rellena los 3 campos', 'var(--danger)'); return;
+  }
+  localStorage.setItem('gordi_gh_token', token);
+  localStorage.setItem('gordi_gh_user',  user);
+  localStorage.setItem('gordi_gh_repo',  repo);
+  setGithubStatus('Probando conexión...', 'var(--text-muted)');
+  githubPush(true).then(() => {
+    document.getElementById('github-badge').style.display = 'inline-block';
+    updateCloudPill();
+  });
+}
+
+function toggleGithubAuto(enabled) {
+  localStorage.setItem('gordi_gh_auto', enabled ? 'true' : 'false');
+  showToast(enabled ? '🐙 GitHub auto-sync activado' : '🐙 Auto-sync desactivado');
+  updateCloudPill();
+}
+
+// ── Push: write voltflow-data.json to repo ────────────────────────────────
+async function githubPush(showFeedback) {
+  const { token, user, repo } = getGithubConfig();
+  if (!token || !user || !repo) {
+    if (showFeedback) setGithubStatus('⚠️ Configura GitHub primero', 'var(--danger)');
+    return false;
+  }
+  if (showFeedback) setGithubStatus('⬆ Subiendo...', 'var(--text-muted)');
+
+  try {
+    const snapshot = exportDataSnapshot();
+    const payload  = JSON.stringify({ voltflow: snapshot, _updated: new Date().toISOString() }, null, 0);
+    const encoded  = btoa(unescape(encodeURIComponent(payload)));
+
+    // Get current SHA (needed for update)
+    const sha = await githubGetSHA(token, user, repo);
+
+    const body = { message: `Voltflow sync ${new Date().toISOString()}`, content: encoded };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${GITHUB_DATA_FILE}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'HTTP ' + res.status);
+    }
+
+    localStorage.setItem('gordi_gh_last_push', new Date().toISOString());
+    if (showFeedback) {
+      const now = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+      setGithubStatus(`✅ Subido correctamente — ${now}`, 'var(--success)');
+      showToast('🐙 Datos guardados en GitHub');
+    }
+    return true;
+  } catch(e) {
+    console.error('GitHub push error:', e);
+    if (showFeedback) setGithubStatus(`❌ Error: ${e.message}`, 'var(--danger)');
+    return false;
+  }
+}
+
+// ── Get SHA of existing file (required for updates) ───────────────────────
+async function githubGetSHA(token, user, repo) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${user}/${repo}/contents/${GITHUB_DATA_FILE}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.sha || null;
+  } catch { return null; }
+}
+
+// ── Pull: read voltflow-data.json from repo ───────────────────────────────
+async function githubPull(showFeedback) {
+  const { token, user, repo } = getGithubConfig();
+  if (!token || !user || !repo) return false;
+  if (showFeedback) setGithubStatus('⬇ Descargando...', 'var(--text-muted)');
+
+  try {
+    // Use raw content URL to avoid base64 decode complexity
+    const res = await fetch(`https://raw.githubusercontent.com/${user}/${repo}/principal/${GITHUB_DATA_FILE}?t=${Date.now()}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
+
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const snapshot = data?.voltflow;
+    if (!snapshot) throw new Error('Datos no encontrados');
+
+    // Confirm if cloud has different lead count
+    const cloudLeads = (() => { try { return JSON.parse(snapshot['gordi_leads'] || '[]').length; } catch { return 0; } })();
+    const localLeads = leads.length;
+
+    if (showFeedback && cloudLeads !== localLeads) {
+      if (!confirm(`¿Descargar datos de GitHub?\n\nNube: ${cloudLeads} leads\nLocal: ${localLeads} leads`)) {
+        setGithubStatus('Descarga cancelada', 'var(--text-dim)'); return false;
+      }
+    }
+
+    importDataSnapshot(snapshot, true);
+    try { leads = JSON.parse(localStorage.getItem('gordi_leads') || '[]'); } catch { leads = []; }
+    try { emailHistory = JSON.parse(localStorage.getItem('gordi_email_history') || '[]'); } catch { emailHistory = []; }
+    try { campaigns = JSON.parse(localStorage.getItem('gordi_campaigns') || '[]'); } catch { campaigns = []; }
+    // Restore API keys to memory
+    _gmailToken = localStorage.getItem('gordi_gmail_token') || null;
+    _ttsEnabled = localStorage.getItem('gordi_tts') === 'true';
+
+    renderAll(); try { renderTracking(); } catch(e) {}
+
+    localStorage.setItem('gordi_gh_last_pull', new Date().toISOString());
+    if (showFeedback) {
+      const now = new Date().toLocaleTimeString('es-ES', { hour:'2-digit', minute:'2-digit' });
+      setGithubStatus(`✅ Descargado correctamente — ${now}`, 'var(--success)');
+      showToast('🐙 Datos restaurados desde GitHub');
+    }
+    return true;
+  } catch(e) {
+    console.error('GitHub pull error:', e);
+    if (showFeedback) setGithubStatus(`❌ Error: ${e.message}`, 'var(--danger)');
+    return false;
+  }
+}
+
+// ── Init: populate settings UI & auto-pull on load ────────────────────────
+function initGithubSync() {
+  const { token, user, repo } = getGithubConfig();
+  const tokenEl = document.getElementById('gh-token-input');
+  const userEl  = document.getElementById('gh-user-input');
+  const repoEl  = document.getElementById('gh-repo-input');
+  const autoEl  = document.getElementById('github-auto-sync');
+  const badge   = document.getElementById('github-badge');
+
+  if (tokenEl && token) tokenEl.value = token;
+  if (userEl  && user)  userEl.value  = user;
+  if (repoEl  && repo)  repoEl.value  = repo;
+  if (autoEl)  autoEl.checked = localStorage.getItem('gordi_gh_auto') === 'true';
+  if (badge && token)   badge.style.display = 'inline-block';
+
+  // Auto-pull on load if configured
+  if (token && user && repo && localStorage.getItem('gordi_gh_auto') === 'true') {
+    setTimeout(() => githubPull(false), 2000);
+  }
+  // First-run on new device: no local data but GitHub configured
+  const hasLocal = !!(localStorage.getItem('gordi_leads') || localStorage.getItem('gordi_api_key'));
+  if (!hasLocal && token && user && repo) {
+    setTimeout(async () => {
+      showToast('🔄 Nuevo dispositivo — restaurando desde GitHub...');
+      await githubPull(false);
+      showToast('✅ Todo restaurado automáticamente');
+    }, 1500);
+  }
+}
+
 const GORDI_SYSTEM = `Eres Voltflow Assistant, el asistente inteligente integrado en Voltflow — app de prospección comercial B2B para Voltium Madrid (reformas integrales, eficiencia energética y mantenimiento integral de naves industriales en Madrid).
 
 TIENES DOS MODOS DE OPERACIÓN:
@@ -15046,6 +15291,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => runProactiveCheck(), 10000);
   initTTS();
   initScheduler();
+  initGithubSync();
   setTimeout(addTTSButton, 800);
   // Auto-pull from JSONBin on load if enabled
   if (localStorage.getItem('gordi_jsonbin_auto') === 'true' && localStorage.getItem('gordi_jsonbin_key')) {
@@ -18603,6 +18849,7 @@ let _qrExpireTimer = null;
 
 function collectQRPayload() {
   const inc = {
+    jsonbin:   document.getElementById('qr-inc-jsonbin')?.checked,
     keys:      document.getElementById('qr-inc-keys')?.checked,
     profile:   document.getElementById('qr-inc-profile')?.checked,
     sheets:    document.getElementById('qr-inc-sheets')?.checked,
@@ -18610,6 +18857,12 @@ function collectQRPayload() {
   };
 
   const payload = { v: 2, t: Date.now(), exp: Date.now() + 5 * 60 * 1000 };
+
+  if (inc.jsonbin) {
+    const jbKey = localStorage.getItem('gordi_jsonbin_key') || '';
+    const jbBin = localStorage.getItem('gordi_jsonbin_bin') || '';
+    if (jbKey) payload.jsonbin = { k: jbKey, b: jbBin };
+  }
 
   if (inc.keys) {
     payload.keys = {
@@ -18796,6 +19049,13 @@ function downloadQR() {
 
     let applied = [];
 
+    if (payload.jsonbin) {
+      if (payload.jsonbin.k) localStorage.setItem('gordi_jsonbin_key', payload.jsonbin.k);
+      if (payload.jsonbin.b) localStorage.setItem('gordi_jsonbin_bin', payload.jsonbin.b);
+      if (payload.jsonbin.k) localStorage.setItem('gordi_jsonbin_auto', 'true');
+      applied.push('☁️ JSONBin');
+    }
+
     if (payload.keys) {
       const map = {
         g:  'gordi_api_key',
@@ -18836,8 +19096,16 @@ function downloadQR() {
     }
 
     // Show success banner + auto-launch Sheets OAuth if cid present
-    setTimeout(() => {
+    setTimeout(async () => {
       showToast('✅ ¡Sincronización aplicada! ' + applied.join(', '));
+      // If JSONBin was restored, auto-pull all data immediately
+      if (payload.jsonbin?.k) {
+        setTimeout(async () => {
+          showToast('🔄 Descargando datos de la nube...');
+          await jsonbinPull(false);
+          showToast('✅ Datos sincronizados');
+        }, 1200);
+      }
 
       // Show persistent banner
       const banner = document.createElement('div');
