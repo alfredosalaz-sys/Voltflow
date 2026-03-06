@@ -4883,8 +4883,8 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       </p>
 
       <div class="input-group" style="margin-bottom:.75rem">
-        <label style="font-size:.78rem;color:var(--text-muted)">Master Key (empieza por $2b$...)</label>
-        <input type="password" id="jsonbin-key-input" placeholder="$2b$10$...">
+        <label style="font-size:.78rem;color:var(--text-muted)">Master Key de JSONBin</label>
+        <input type="password" id="jsonbin-key-input" placeholder="Pega aquí tu Master Key...">
       </div>
       <div class="input-group" style="margin-bottom:.75rem">
         <label style="font-size:.78rem;color:var(--text-muted)">Bin ID <span style="color:var(--text-dim)">(se genera automáticamente la primera vez)</span></label>
@@ -6331,8 +6331,8 @@ function jsonbinSetStatus(msg, color) {
 // ── Guardar configuración ────────────────────────────────────────────────────
 async function saveJsonBinConfig() {
   const key = document.getElementById('jsonbin-key-input')?.value.trim();
-  if (!key || !key.startsWith('$2b$')) {
-    jsonbinSetStatus('⚠️ La Master Key debe empezar por $2b$...', 'var(--danger)');
+  if (!key || key.length < 10) {
+    jsonbinSetStatus('⚠️ Introduce tu Master Key de JSONBin', 'var(--danger)');
     return;
   }
   localStorage.setItem('gordi_jsonbin_key', key);
