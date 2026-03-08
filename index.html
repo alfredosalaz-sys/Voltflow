@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Voltflow — Voltium Madrid</title>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -178,8 +179,9 @@ body { font-size: calc(14px * var(--font-scale)); }
   font-size: .78rem;
   font-family: inherit;
   padding: 1px 2px;
-  width: 100%;
+  flex: 1;
   min-width: 0;
+  width: 0;
   outline: none;
   transition: border-color .15s, background .15s;
   border-radius: 3px;
@@ -3370,8 +3372,11 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
   main { padding: 3.5rem 1rem 7rem !important; }
 
   /* FIX: FABs no se solapan con bottom nav */
-  #voice-fab { bottom: 5.5rem !important; right: 1rem !important; }
-  #scan-fab  { bottom: 5.5rem !important; right: 4.2rem !important; }
+  /* FABs en fila horizontal sobre el bottom nav, de derecha a izquierda: bot · mic · cámara */
+  #chat-bubble { bottom: 5.2rem !important; right: 1rem !important; width: 44px !important; height: 44px !important; font-size: 1.2rem !important; }
+  #voice-fab   { bottom: 5.2rem !important; right: 4rem !important; width: 44px !important; height: 44px !important; }
+  #scan-fab    { bottom: 5.2rem !important; right: 7rem !important; width: 40px !important; height: 40px !important; font-size: 1rem !important; }
+  #chat-window { bottom: 9rem !important; right: 1rem !important; left: 1rem !important; width: auto !important; }
 
   /* FIX: bottom nav Apple style */
   #mobile-bottom-nav {
@@ -3716,7 +3721,7 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
     </div>
 
     <div class="glass-panel collapsible" id="lead-form-panel" style="display:none;margin-bottom:1.5rem">
-      <div class="panel-header"><h3>Nuevo Lead Estratégico</h3><button class="btn-icon" onclick="toggleLeadForm()">✕</button></div>
+      <div class="panel-header"><h3>Nuevo Lead Estratégico</h3><div style="display:flex;align-items:center;gap:.75rem"><span id="autosave-indicator" style="font-size:.7rem;color:var(--text-dim);display:none">💾 <span id="autosave-text">Borrador guardado</span></span><button class="btn-icon" onclick="toggleLeadForm()">✕</button></div></div>
       <form id="lead-form" class="grid-form" style="margin-top:1.5rem">
         <div class="input-group">
           <label>Nombre del Decisor</label>
@@ -3883,12 +3888,18 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
         <!-- Bulk Actions Bar -->
     <div id="bulk-bar" role="toolbar">
       <span id="bulk-count">0 seleccionados</span>
-      <button class="bulk-btn" onclick="bulkChangeStatus('Contactado')">→ Contactado</button>
-      <button class="bulk-btn" onclick="bulkChangeStatus('Respuesta del cliente')">→ Respuesta del cliente</button>
-      <button class="bulk-btn" onclick="bulkChangeStatus('Visita')">→ Visita</button>
-      <button class="bulk-btn" onclick="bulkChangeStatus('Entrega de presupuesto')">→ Entrega de presupuesto</button>
-      <button class="bulk-btn" onclick="bulkChangeStatus('Cerrado')">→ Cerrado</button>
-      <button class="bulk-btn" onclick="bulkChangeStatus('No interesa')">→ No interesa</button>
+      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+        <select id="bulk-status-select" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:7px;color:#fff;padding:.25rem .5rem;font-size:.78rem;cursor:pointer;max-width:160px">
+          <option value="">→ Cambiar estado...</option>
+          <option value="Contactado">Contactado</option>
+          <option value="Respuesta del cliente">Respuesta del cliente</option>
+          <option value="Visita">Visita</option>
+          <option value="Entrega de presupuesto">Entrega de presupuesto</option>
+          <option value="Cerrado">✅ Cerrado</option>
+          <option value="No interesa">🚫 No interesa</option>
+        </select>
+        <button class="bulk-btn" onclick="bulkApplyStatus()" style="white-space:nowrap">Aplicar</button>
+      </div>
       <button class="bulk-btn" onclick="bulkExport()">📥 Exportar</button>
       <button class="bulk-btn" onclick="bulkArchive()" style="background:rgba(239,68,68,.3)">🗑️ Archivar</button>
       <button class="bulk-btn" onclick="clearBulkSelection()" style="margin-left:auto;background:rgba(255,255,255,.1)">✕ Cancelar</button>
@@ -4376,6 +4387,16 @@ body.light-mode .panel-header { border-bottom-color: rgba(0,0,0,0.05) !important
 
     <!-- Preview -->
     <div class="glass-panel" id="import-preview" style="display:none;margin-top:1.5rem">
+      <!-- Panel de duplicados detectados -->
+      <div id="import-duplicates-panel" style="display:none;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem">
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+          <span style="font-size:1rem">⚠️</span>
+          <strong style="font-size:.82rem;color:var(--warning)">Posibles duplicados detectados</strong>
+          <span id="dup-count-badge" style="background:rgba(245,158,11,.2);color:var(--warning);border-radius:8px;padding:1px 7px;font-size:.72rem;font-weight:700"></span>
+        </div>
+        <div id="import-duplicates-list" style="display:grid;gap:.35rem;max-height:180px;overflow-y:auto"></div>
+        <div style="margin-top:.5rem;font-size:.72rem;color:var(--text-muted)">Desmarca los duplicados en la tabla de abajo antes de importar.</div>
+      </div>
       <div class="panel-header">
         <h3>Previsualización <span id="import-status-msg" style="color:var(--primary);font-size:0.85rem;font-weight:400"></span></h3>
         <div style="display:flex;gap:.75rem">
@@ -4749,41 +4770,177 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
       </div>
     </div>
 
-    <!-- ── Gmail Alertas ── -->
-    <div class="glass-panel">
-      <div class="panel-header"><h3>📧 Gmail — Alertas automáticas a ti mismo</h3></div>
-      <p style="color:var(--text-muted);font-size:.85rem;margin:1rem 0">
-        Recibe emails en tu propio Gmail cuando el agente detecte algo urgente.<br>
-        <strong>Gratis e ilimitado</strong> con tu cuenta de Google.<br>
-        <strong>Setup (5 min):</strong> <a href="https://console.cloud.google.com/apis/library/gmail.googleapis.com" target="_blank" style="color:var(--primary)">Activa Gmail API</a>
-        → Credenciales → OAuth 2.0 → copia Client ID + Client Secret.
+    <!-- ── IA Multi-Proveedor: Groq ── -->
+    <div class="glass-panel" style="margin-bottom:1.5rem">
+      <div class="panel-header">
+        <h3>⚡ API Key de Groq (IA de respaldo)</h3>
+        <span style="background:linear-gradient(135deg,#f55036,#ff9500);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:.75rem;font-weight:700">GRATIS · ULTRA-RÁPIDO</span>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin:1rem 0">
+        Groq es un proveedor de IA gratuito con modelos de alta calidad (Llama 3.3 70B).<br>
+        Se activa <strong style="color:var(--success)">automáticamente</strong> cuando Gemini alcanza su límite diario — sin interrupciones para ti.<br>
+        <strong>14.400 peticiones/día gratuitas.</strong> <a href="https://console.groq.com" target="_blank" style="color:var(--primary)">console.groq.com</a> → API Keys → Create API key (solo necesitas email).
       </p>
-      <div style="display:grid;gap:.75rem;margin-bottom:1rem">
-        <div class="input-group">
-          <label>Tu email (destinatario de alertas)</label>
-          <input type="email" id="gmail-alert-email" placeholder="tu@gmail.com"
-            value="${localStorage.getItem('gordi_gmail_email')||''}">
+      <div class="input-group">
+        <input type="password" id="groq-key-input" placeholder="gsk_...">
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center">
+        <button class="btn-primary" onclick="saveGroqKey()">Guardar Groq Key</button>
+        <div id="groq-key-status" style="font-size:0.85rem"></div>
+      </div>
+    </div>
+
+    <!-- ── IA Multi-Proveedor: OpenRouter ── -->
+    <div class="glass-panel" style="margin-bottom:1.5rem">
+      <div class="panel-header">
+        <h3>🔀 API Key de OpenRouter (IA de respaldo 2)</h3>
+        <span style="background:linear-gradient(135deg,#6366f1,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-size:.75rem;font-weight:700">GRATIS · 50+ MODELOS</span>
+      </div>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin:1rem 0">
+        OpenRouter da acceso a 50+ modelos gratuitos y se usa como último respaldo.<br>
+        Se activa solo cuando Gemini y Groq están limitados — <strong style="color:var(--success)">totalmente transparente</strong> para ti.<br>
+        <a href="https://openrouter.ai" target="_blank" style="color:var(--primary)">openrouter.ai</a> → Sign in → Keys → Create Key (solo email, sin tarjeta).
+      </p>
+      <div class="input-group">
+        <input type="password" id="openrouter-key-input" placeholder="sk-or-...">
+      </div>
+      <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center">
+        <button class="btn-primary" onclick="saveOpenRouterKey()">Guardar OpenRouter Key</button>
+        <div id="openrouter-key-status" style="font-size:0.85rem"></div>
+      </div>
+    </div>
+
+    <!-- ── Estado IA Multi-Proveedor ── -->
+    <div class="glass-panel" style="margin-bottom:1.5rem;background:rgba(16,217,124,.04);border-color:rgba(16,217,124,.12)">
+      <div class="panel-header"><h3>🤖 Estado IA en tiempo real</h3></div>
+      <div id="ai-router-status" style="font-size:.82rem;color:var(--text-muted);margin-top:.5rem">
+        <em>Cargando estado...</em>
+      </div>
+      <button class="btn-outline" style="margin-top:.75rem;font-size:.78rem" onclick="refreshAiRouterStatus()">Actualizar estado</button>
+    </div>
+
+    <!-- ── Alertas de Email ── -->
+    <div class="glass-panel">
+      <div class="panel-header">
+        <h3>📧 Alertas de email automáticas</h3>
+        <span id="email-alerts-connected-badge" style="display:none;background:rgba(16,217,124,.15);color:var(--success);border:1px solid rgba(16,217,124,.3);border-radius:8px;padding:2px 10px;font-size:.72rem;font-weight:700">✅ Conectado</span>
+      </div>
+      <p style="color:var(--text-muted);font-size:.85rem;margin:.75rem 0">
+        Recibe un email cuando el agente detecte leads urgentes, seguimientos vencidos o acciones importantes.
+      </p>
+
+      <!-- Selector de método -->
+      <div style="display:flex;gap:.5rem;margin-bottom:1.25rem;flex-wrap:wrap">
+        <button id="method-btn-emailjs" onclick="selectEmailMethod('emailjs')"
+          style="flex:1;min-width:120px;padding:.6rem .75rem;border-radius:10px;border:2px solid var(--primary);background:rgba(10,132,255,.1);color:var(--primary);font-weight:700;font-size:.8rem;cursor:pointer;transition:all .15s">
+          ⚡ EmailJS <span style="display:block;font-size:.68rem;font-weight:400;color:var(--text-muted);margin-top:1px">Recomendado · 2 min</span>
+        </button>
+        <button id="method-btn-gmail" onclick="selectEmailMethod('gmail')"
+          style="flex:1;min-width:120px;padding:.6rem .75rem;border-radius:10px;border:2px solid var(--glass-border);background:var(--glass);color:var(--text-muted);font-weight:600;font-size:.8rem;cursor:pointer;transition:all .15s">
+          🔐 Gmail OAuth <span style="display:block;font-size:.68rem;font-weight:400;margin-top:1px">Avanzado · 10 min</span>
+        </button>
+      </div>
+
+      <!-- ── MÉTODO EMAILJS ── -->
+      <div id="emailjs-setup" style="display:block">
+        <!-- Pasos visuales -->
+        <div style="display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem">
+          <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem .75rem;background:var(--glass);border-radius:8px">
+            <span style="background:var(--primary);color:#000;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:1px">1</span>
+            <div style="font-size:.8rem">
+              <strong>Crea cuenta gratis en EmailJS</strong>
+              <div style="color:var(--text-muted);font-size:.75rem;margin-top:2px">Solo email, sin tarjeta. 200 emails/mes gratuitos.</div>
+              <a href="https://www.emailjs.com/docs/tutorial/overview/" target="_blank"
+                style="display:inline-block;margin-top:5px;background:var(--primary);color:#fff;border-radius:6px;padding:3px 12px;font-size:.75rem;text-decoration:none;font-weight:600">
+                Ir a emailjs.com →
+              </a>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem .75rem;background:var(--glass);border-radius:8px">
+            <span style="background:var(--primary);color:#000;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:1px">2</span>
+            <div style="font-size:.8rem">
+              <strong>Crea un Email Service</strong>
+              <div style="color:var(--text-muted);font-size:.75rem;margin-top:2px">Dashboard → Email Services → Add New Service → Gmail (conecta tu cuenta Google con 1 clic) → copia el <strong>Service ID</strong>.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem .75rem;background:var(--glass);border-radius:8px">
+            <span style="background:var(--primary);color:#000;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:1px">3</span>
+            <div style="font-size:.8rem">
+              <strong>Crea una plantilla de email</strong>
+              <div style="color:var(--text-muted);font-size:.75rem;margin-top:2px">Email Templates → Create New → añade variables <code style="background:rgba(99,102,241,.15);padding:1px 5px;border-radius:3px">{{subject}}</code> y <code style="background:rgba(99,102,241,.15);padding:1px 5px;border-radius:3px">{{message}}</code> → copia el <strong>Template ID</strong>.</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:.75rem;align-items:flex-start;padding:.6rem .75rem;background:var(--glass);border-radius:8px">
+            <span style="background:var(--primary);color:#000;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;margin-top:1px">4</span>
+            <div style="font-size:.8rem">
+              <strong>Copia tu Public Key</strong>
+              <div style="color:var(--text-muted);font-size:.75rem;margin-top:2px">Account → API Keys → Public Key.</div>
+            </div>
+          </div>
         </div>
-        <div class="input-group">
-          <label>Gmail OAuth Client ID</label>
-          <input type="password" id="gmail-client-id" placeholder="xxxxx.apps.googleusercontent.com"
-            value="${localStorage.getItem('gordi_gmail_client_id')||''}">
+
+        <!-- Inputs EmailJS -->
+        <div style="display:grid;gap:.65rem;margin-bottom:.75rem">
+          <div class="input-group">
+            <label>Tu email (donde recibirás las alertas)</label>
+            <input type="email" id="ejs-to-email" placeholder="tu@gmail.com">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem">
+            <div class="input-group">
+              <label>Service ID</label>
+              <input type="text" id="ejs-service-id" placeholder="service_xxxxxxx">
+            </div>
+            <div class="input-group">
+              <label>Template ID</label>
+              <input type="text" id="ejs-template-id" placeholder="template_xxxxxxx">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Public Key</label>
+            <input type="password" id="ejs-public-key" placeholder="xxxxxxxxxxxxxxxxxxxxxx">
+          </div>
         </div>
-        <div class="input-group">
-          <label>Gmail OAuth Client Secret</label>
-          <input type="password" id="gmail-client-secret" placeholder="GOCSPX-..."
-            value="${localStorage.getItem('gordi_gmail_client_secret')||''}">
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" onclick="saveEmailJsConfig()">Guardar y conectar</button>
+          <button class="btn-outline" onclick="testEmailJsAlert()">📧 Enviar email de prueba</button>
+          <div id="ejs-status" style="font-size:.82rem;color:var(--text-muted)"></div>
         </div>
       </div>
-      <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
-        <button class="btn-primary" onclick="saveGmailConfig()">Guardar y Conectar Gmail</button>
-        <button class="btn-outline" onclick="testGmailAlert()">📧 Enviar email de prueba</button>
-        <div id="gmail-status" style="font-size:.82rem;color:var(--text-muted)"></div>
+
+      <!-- ── MÉTODO GMAIL OAUTH (colapsado por defecto) ── -->
+      <div id="gmail-oauth-setup" style="display:none">
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:.6rem .75rem;margin-bottom:.75rem;font-size:.78rem;color:var(--warning)">
+          ⚠️ Este método requiere crear un proyecto en Google Cloud Console. Usa EmailJS si quieres algo más rápido.
+        </div>
+        <div style="display:grid;gap:.65rem;margin-bottom:.75rem">
+          <div class="input-group">
+            <label>Tu email (destinatario de alertas)</label>
+            <input type="email" id="gmail-alert-email" placeholder="tu@gmail.com"
+              value="${localStorage.getItem('gordi_gmail_email')||''}">
+          </div>
+          <div class="input-group">
+            <label>Gmail OAuth Client ID</label>
+            <input type="password" id="gmail-client-id" placeholder="xxxxx.apps.googleusercontent.com"
+              value="${localStorage.getItem('gordi_gmail_client_id')||''}">
+          </div>
+          <div class="input-group">
+            <label>Gmail OAuth Client Secret</label>
+            <input type="password" id="gmail-client-secret" placeholder="GOCSPX-..."
+              value="${localStorage.getItem('gordi_gmail_client_secret')||''}">
+          </div>
+        </div>
+        <div style="display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" onclick="saveGmailConfig()">Guardar y Conectar Gmail</button>
+          <button class="btn-outline" onclick="testGmailAlert()">📧 Enviar email de prueba</button>
+          <div id="gmail-status" style="font-size:.82rem;color:var(--text-muted)"></div>
+        </div>
       </div>
+
+      <!-- Info cuándo avisa + toggle -->
       <div style="margin-top:1rem;padding:.75rem;background:var(--glass);border-radius:8px;font-size:.78rem;color:var(--text-dim)">
-        <strong>¿Cuándo te avisa?</strong> Lead caliente sin contactar 3+ días · Seguimientos vencidos · 
+        <strong>¿Cuándo te avisa?</strong> Lead caliente sin contactar 3+ días · Seguimientos vencidos ·
         Lead atascado en Visita 10+ días · Resumen semanal los lunes · Acciones del agente completadas
-        <div style="margin-top:.5rem;display:flex;align-items:center;gap:.5rem">
+        <div style="margin-top:.5rem">
           <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.78rem">
             <input type="checkbox" id="gmail-alerts-enabled" onchange="toggleGmailAlerts(this.checked)"
               style="accent-color:var(--primary)"
@@ -4834,6 +4991,7 @@ Y cruzará los remitentes con tus leads para actualizar el CRM."
           </div>
           <div style="display:flex;gap:.5rem;flex-wrap:wrap">
             <button class="btn-primary" onclick="generateQR()" style="font-size:.8rem">⚡ Generar QR</button>
+            <button class="btn-outline" onclick="openQRImportScanner()" style="font-size:.8rem">📷 Importar QR</button>
             <button class="btn-outline" id="qr-download-btn" onclick="downloadQR()" style="font-size:.8rem;display:none">⬇ Descargar PNG</button>
             <button class="btn-outline" id="qr-refresh-btn" onclick="generateQR()" style="font-size:.8rem;display:none">🔄 Regenerar</button>
           </div>
@@ -6056,6 +6214,7 @@ const VOLTFLOW_DATA_KEYS = [
   'gordi_objectives', 'gordi_search_history', 'gordi_templates',
   'gordi_api_key', 'gordi_hunter_key', 'gordi_apollo_key',
   'gordi_claude_key', 'gordi_gemini_key',
+  'gordi_groq_key', 'gordi_openrouter_key',
   'gordi_user_name', 'gordi_user_email', 'gordi_user_company',
   'gordi_user_phone', 'gordi_user_web', 'gordi_user_logo',
   'gordi_sender_name', 'gordi_sender_email',
@@ -6179,8 +6338,20 @@ function loadAllData() {
   const claudeKey = localStorage.getItem('gordi_claude_key');
   if (claudeKey && el('claude-key-input')) {
     el('claude-key-input').value = claudeKey;
-    el('claude-key-status').innerHTML = '<span style="color:var(--success)">✅ Claude Key guardada</span>';
+    el('claude-key-status').innerHTML = '<span style="color:var(--success)">✅ Gemini Key guardada</span>';
   }
+  const groqKey = localStorage.getItem('gordi_groq_key');
+  if (groqKey && el('groq-key-input')) {
+    el('groq-key-input').value = groqKey;
+    el('groq-key-status').innerHTML = '<span style="color:var(--success)">✅ Groq Key guardada</span>';
+  }
+  const openrouterKey = localStorage.getItem('gordi_openrouter_key');
+  if (openrouterKey && el('openrouter-key-input')) {
+    el('openrouter-key-input').value = openrouterKey;
+    el('openrouter-key-status').innerHTML = '<span style="color:var(--success)">✅ OpenRouter Key guardada</span>';
+  }
+  // Mostrar estado del router IA
+  setTimeout(refreshAiRouterStatus, 100);
   const apolloKey = localStorage.getItem('gordi_apollo_key');
   if (apolloKey && el('apollo-key-input')) {
     el('apollo-key-input').value = apolloKey;
@@ -6229,7 +6400,13 @@ function toggleLeadForm() {
   const panel = document.getElementById('lead-form-panel');
   const isOpening = panel.style.display === 'none' || panel.style.display === '';
   panel.style.display = isOpening ? 'block' : 'none';
-  if (isOpening) setTimeout(initLeadFormDatePicker, 50);
+  if (isOpening) {
+    setTimeout(initLeadFormDatePicker, 50);
+    restoreLeadFormDraft();
+    startLeadFormAutosave();
+  } else {
+    stopLeadFormAutosave();
+  }
 }
 
 // ============ PERFIL / FIRMA ============
@@ -6545,7 +6722,49 @@ function saveClaudeKey() {
   const k = document.getElementById('claude-key-input').value.trim();
   if (!k) return;
   localStorage.setItem('gordi_claude_key', k);
-  document.getElementById('claude-key-status').innerHTML = '<span style="color:var(--success)">✅ Claude Key guardada</span>';
+  document.getElementById('claude-key-status').innerHTML = '<span style="color:var(--success)">✅ Gemini Key guardada</span>';
+  refreshAiRouterStatus();
+}
+
+function saveGroqKey() {
+  const k = document.getElementById('groq-key-input')?.value.trim();
+  if (!k) return;
+  localStorage.setItem('gordi_groq_key', k);
+  const el = document.getElementById('groq-key-status');
+  if (el) el.innerHTML = '<span style="color:var(--success)">✅ Groq Key guardada</span>';
+  refreshAiRouterStatus();
+}
+
+function saveOpenRouterKey() {
+  const k = document.getElementById('openrouter-key-input')?.value.trim();
+  if (!k) return;
+  localStorage.setItem('gordi_openrouter_key', k);
+  const el = document.getElementById('openrouter-key-status');
+  if (el) el.innerHTML = '<span style="color:var(--success)">✅ OpenRouter Key guardada</span>';
+  refreshAiRouterStatus();
+}
+
+function refreshAiRouterStatus() {
+  const el = document.getElementById('ai-router-status');
+  if (!el) return;
+  const s = AI_ROUTER.getStatus();
+  const row = (name, label, icon, info) => {
+    const ok = s[name].configured;
+    const lim = s[name].limited;
+    const color = !ok ? 'var(--text-dim)' : lim ? 'var(--warning)' : 'var(--success)';
+    const badge = !ok ? '⚪ No configurado' : lim ? '⏳ Límite alcanzado' : '✅ Activo';
+    return `<div style="display:flex;align-items:center;gap:.6rem;padding:.35rem 0;border-bottom:1px solid var(--glass-border)">
+      <span>${icon}</span>
+      <span style="flex:1;font-weight:600">${label}</span>
+      <span style="color:${color};font-size:.75rem">${badge}</span>
+      ${ok ? '' : `<a href="${info}" target="_blank" style="font-size:.72rem;color:var(--primary)">Configurar →</a>`}
+    </div>`;
+  };
+  el.innerHTML =
+    row('gemini',     'Gemini (Principal)',   '✨', 'https://aistudio.google.com/apikey') +
+    row('groq',       'Groq (Respaldo 1)',    '⚡', 'https://console.groq.com') +
+    row('openrouter', 'OpenRouter (Resp. 2)', '🔀', 'https://openrouter.ai') +
+    `<p style="margin-top:.6rem;font-size:.75rem;color:var(--text-dim)">💡 Configura los 3 proveedores para tener IA prácticamente ilimitada. El sistema cambia automáticamente cuando uno alcanza su límite.</p>`;
 }
 
 // ============================================================
@@ -7437,7 +7656,20 @@ async function enrichFromWeb(company) {
   }
 
   // ─── 11. Sitemap.xml — detección de páginas clave ──────────────────────────
+  // MEJORA — Early-exit de sitemap:
+  // El sitemap solo aporta valor en dos casos: (a) encontrar decisor vía teamUrl,
+  // (b) detectar URLs con año reciente como señal de actividad.
+  // Si ya tenemos email + decisor desde una fuente fiable (JSON-LD / Hunter / Apollo / caché)
+  // nos ahorramos el fetch de 5000ms por empresa → en un batch de 3 = hasta 15s ganados.
+  const _sitemapSources = company.enrichSource || [];
+  const _skipSitemap = !!(
+    company.email &&
+    company.decision_maker &&
+    _sitemapSources.some(s => /JSON-LD|Hunter|Apollo|Caché/.test(s))
+  );
   try {
+    if (_skipSitemap) { /* early-exit: datos completos, no merece el fetch */ }
+    else {
     const sitemapUrl = company.website.replace(/\/$/, '') + '/sitemap.xml';
     const sitemapHtml = await fetchWithProxy(sitemapUrl, 5000);
     if (sitemapHtml && /<loc>/i.test(sitemapHtml)) {
@@ -7464,6 +7696,7 @@ async function enrichFromWeb(company) {
         } catch {}
       }
     }
+    } // end else (!_skipSitemap)
   } catch {}
 
   // ─── 12. Velocidad web como señal de abandono tecnológico ───────────────────
@@ -9058,7 +9291,7 @@ function buildCardHTML(c, i) {
         <span class="sc-icon">✉️</span>
         <div class="sc-val ${c.email ? '' : 'empty'}">
           ${c.email
-            ? `${c.email}${emailsExtra ? '<br>' + emailsExtra : ''}`
+            ? `<span style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">${c.email}${emailsExtra ? '<br>' + emailsExtra : ''}<button onclick="copyEmail('${c.email.split('<br>')[0]}',event)" title="Copiar email" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:1px 4px;font-size:.72rem;line-height:1;flex-shrink:0;transition:color .15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-dim)'">⧉</button></span>`
             : `<input type="email" placeholder="Añadir email..." onchange="tempSearchResults[${i}].email=this.value;updateEnrichStats()" style="background:none;border:none;border-bottom:1px solid var(--glass-border);padding:.15rem 0;color:var(--text);font-size:.78rem;outline:none;width:100%">`
           }
         </div>
@@ -9656,6 +9889,7 @@ function saveLead() {
   renderAll();
   renderDashboardCharts();
   document.getElementById('lead-form').reset();
+  clearLeadFormDraft();
   toggleLeadForm();
   updateStreakData();
   showToast('Lead guardado correctamente ✓');
@@ -9890,7 +10124,7 @@ function renderLeads() {
       </td>
       <td><span class="status-${sc}"><span class="status-dot"></span>${lead.status}</span>${daysBadge}</td>
       <td style="font-size:.78rem;color:var(--text-muted)">
-        <div style="display:flex;align-items:center;gap:.3rem">
+        <div style="display:flex;align-items:center;gap:.3rem;overflow:visible;min-width:0">
           <span style="color:var(--text-dim);flex-shrink:0">✉️</span>
           <input type="email"
             value="${lead.email||''}"
@@ -10828,7 +11062,7 @@ function renderTracking() {
     tr.innerHTML = `
       <td style="font-size:.78rem">${new Date(e.date).toLocaleDateString('es-ES',{day:'2-digit',month:'short',year:'numeric'})}</td>
       <td><div class="lead-name">${e.company}</div></td>
-      <td style="color:var(--primary);font-size:.82rem">${e.email}</td>
+      <td style="color:var(--primary);font-size:.82rem"><span style="display:inline-flex;align-items:center;gap:.35rem">${e.email}<button onclick="copyEmail('${e.email}',event)" title="Copiar email" style="background:none;border:none;cursor:pointer;color:var(--text-dim);padding:1px 4px;font-size:.75rem;line-height:1;transition:color .15s" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-dim)'">⧉</button></span></td>
       <td><span style="font-size:.75rem;background:var(--glass);padding:2px 8px;border-radius:5px;color:var(--text-muted)">${e.segment}</span></td>
       <td><span style="color:var(--success);font-size:.78rem">✅ ${e.status}</span></td>
       <td style="font-size:.78rem;color:var(--text-muted)">${e.notes||'—'}</td>`;
@@ -11021,7 +11255,11 @@ function parseAndPreviewImport(text) {
 
   if (tempImportLeads.length) {
     document.getElementById('import-preview').style.display = 'block';
-    document.getElementById('import-status-msg').innerText = `${tempImportLeads.length} leads detectados`;
+    // Detección de duplicados
+    const dupes = detectImportDuplicates(tempImportLeads);
+    renderImportDuplicatesPanel(dupes);
+    const dupMsg = dupes.length ? ` · ⚠️ ${dupes.length} posible${dupes.length>1?'s':''} duplicado${dupes.length>1?'s':''}` : '';
+    document.getElementById('import-status-msg').innerText = `${tempImportLeads.length} leads detectados${dupMsg}`;
   }
 }
 
@@ -17815,16 +18053,162 @@ Responde la última pregunta del comercial:`;
   }
 }
 
+// ══════════════════════════════════════════════════════════════════
+// VOLTFLOW — ROUTER IA MULTI-PROVEEDOR v2
+// Gemini → Groq → OpenRouter (fallback automático al alcanzar límites)
+// ══════════════════════════════════════════════════════════════════
+
+const AI_ROUTER = {
+  // Estado de rate-limit por proveedor (se resetea cada hora)
+  _limited: {},
+  _limitTimers: {},
+
+  _markLimited(provider) {
+    this._limited[provider] = true;
+    clearTimeout(this._limitTimers[provider]);
+    // Auto-recuperar en 62 minutos (ventana segura para todos los proveedores)
+    this._limitTimers[provider] = setTimeout(() => {
+      delete this._limited[provider];
+      console.log(`[AI Router] ${provider} recuperado — límites reseteados`);
+    }, 62 * 60 * 1000);
+    console.warn(`[AI Router] ${provider} marcado como limitado — usando siguiente proveedor`);
+  },
+
+  _isLimited(provider) {
+    return !!this._limited[provider];
+  },
+
+  // ── Proveedor 1: Gemini ──────────────────────────────────────
+  async _callGemini(prompt, key, model = 'gemini-2.0-flash') {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+        signal: AbortSignal.timeout(20000) }
+    );
+    if (res.status === 429 || res.status === 503) { this._markLimited('gemini'); throw new Error('RATE_LIMIT'); }
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error?.code === 429) { this._markLimited('gemini'); throw new Error('RATE_LIMIT'); }
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Sin respuesta';
+  },
+
+  // ── Proveedor 2: Groq (llama3 ultra-rápido, gratis) ─────────
+  async _callGroq(prompt, key) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1500,
+        temperature: 0.7,
+      }),
+      signal: AbortSignal.timeout(20000)
+    });
+    if (res.status === 429) { this._markLimited('groq'); throw new Error('RATE_LIMIT'); }
+    if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
+    const data = await res.json();
+    if (data.error?.type === 'rate_limit_exceeded') { this._markLimited('groq'); throw new Error('RATE_LIMIT'); }
+    return data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
+  },
+
+  // ── Proveedor 3: OpenRouter (50+ modelos gratuitos) ──────────
+  async _callOpenRouter(prompt, key) {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${key}`,
+        'HTTP-Referer': 'https://voltium.es',
+        'X-Title': 'Voltflow CRM',
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 1500,
+      }),
+      signal: AbortSignal.timeout(25000)
+    });
+    if (res.status === 429) { this._markLimited('openrouter'); throw new Error('RATE_LIMIT'); }
+    if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content?.trim() || 'Sin respuesta';
+  },
+
+  // ── ROUTER PRINCIPAL ─────────────────────────────────────────
+  async call(prompt, geminiKey) {
+    const groqKey       = localStorage.getItem('gordi_groq_key') || '';
+    const openrouterKey = localStorage.getItem('gordi_openrouter_key') || '';
+
+    const providers = [];
+
+    // Proveedor 1: Gemini (si tiene key y no está limitado)
+    if (geminiKey && !this._isLimited('gemini')) {
+      providers.push({ name: 'gemini', fn: () => this._callGemini(prompt, geminiKey) });
+    }
+
+    // Proveedor 2: Groq
+    if (groqKey && !this._isLimited('groq')) {
+      providers.push({ name: 'groq', fn: () => this._callGroq(prompt, groqKey) });
+    }
+
+    // Proveedor 3: OpenRouter
+    if (openrouterKey && !this._isLimited('openrouter')) {
+      providers.push({ name: 'openrouter', fn: () => this._callOpenRouter(prompt, openrouterKey) });
+    }
+
+    // Intentar proveedores en orden
+    for (const provider of providers) {
+      try {
+        const result = await provider.fn();
+        // Si no era el primero, mostrar notificación discreta
+        if (providers[0].name !== provider.name) {
+          showToast(`⚡ IA activa: ${provider.name}`, 2500);
+        }
+        return result;
+      } catch (err) {
+        if (err.message === 'RATE_LIMIT') continue; // pasar al siguiente
+        console.error(`[AI Router] Error en ${provider.name}:`, err);
+        continue;
+      }
+    }
+
+    // Todos los proveedores fallaron o están limitados
+    const configured = [geminiKey && 'Gemini', groqKey && 'Groq', openrouterKey && 'OpenRouter'].filter(Boolean);
+    if (!configured.length) {
+      throw new Error('NO_KEY');
+    }
+    throw new Error('ALL_LIMITED');
+  },
+
+  // Estado visible para UI
+  getStatus() {
+    const geminiKey     = localStorage.getItem('gordi_gemini_key') || '';
+    const groqKey       = localStorage.getItem('gordi_groq_key') || '';
+    const openrouterKey = localStorage.getItem('gordi_openrouter_key') || '';
+    return {
+      gemini:      { configured: !!geminiKey,     limited: this._isLimited('gemini') },
+      groq:        { configured: !!groqKey,        limited: this._isLimited('groq') },
+      openrouter:  { configured: !!openrouterKey,  limited: this._isLimited('openrouter') },
+    };
+  },
+};
+
+// Compatibilidad total: todas las llamadas antiguas a callGeminiAPI ahora usan el router
 async function callGeminiAPI(prompt, geminiKey) {
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-    { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] }),
-      signal: AbortSignal.timeout(18000) }
-  );
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || 'Sin respuesta';
+  try {
+    return await AI_ROUTER.call(prompt, geminiKey);
+  } catch (err) {
+    if (err.message === 'NO_KEY') {
+      throw new Error('NO_KEY: Configura al menos una API Key de IA en Configuración');
+    }
+    if (err.message === 'ALL_LIMITED') {
+      showToast('⏳ Límite diario alcanzado en todos los proveedores IA. Se recuperarán automáticamente.', 5000);
+      throw new Error('ALL_LIMITED');
+    }
+    throw err;
+  }
 }
 
 function appendBriefingMsg(text, role) {
@@ -18797,7 +19181,7 @@ function collectQRPayload() {
       co: localStorage.getItem('gordi_user_company') || '',
       p:  localStorage.getItem('gordi_user_phone')   || '',
       w:  localStorage.getItem('gordi_user_web')     || '',
-      l:  localStorage.getItem('gordi_user_logo')    || '',
+      // Logo excluido del QR: puede ser base64 de cientos de KB
     };
   }
   if (inc.sheets) {
@@ -18816,25 +19200,37 @@ function collectQRPayload() {
   return payload;
 }
 
+// URL pública de la app — el QR apunta siempre aquí
+const VOLTFLOW_PUBLIC_URL = 'https://alfredosalaz-sys.github.io/Voltflow/index.html';
+
 function generateQR() {
   const payload = collectQRPayload();
-
-  // Encode payload as base64 compact JSON
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
 
-  // Build the self-activating URL: current page + #voltflow-sync=<data>
-  const baseUrl = location.href.split('#')[0].split('?')[0];
-  const syncUrl = baseUrl + '?vfsync=' + encodeURIComponent(encoded);
+  // Construir URL directa: el móvil escanea, abre la app en GitHub Pages
+  // y detectAndApplySync() lee ?vfsync= y aplica la configuración automáticamente
+  const syncUrl = VOLTFLOW_PUBLIC_URL + '?vfsync=' + encodeURIComponent(encoded);
+
+  const statusEl = document.getElementById('qr-status');
 
   if (syncUrl.length > 2953) {
-    // QR v40 max ~2953 chars for binary mode; warn user
-    document.getElementById('qr-status').innerHTML =
-      '⚠️ Demasiados datos para un QR. Desmarca plantillas o reduce los campos del perfil.';
+    statusEl.innerHTML =
+      '⚠️ Demasiados datos para un QR.<br>' +
+      '<span style="font-size:.75rem;color:var(--text-dim)">Desmarca "Plantillas" o "Perfil" e inténtalo de nuevo.</span>';
     return;
   }
 
-  // Draw QR using the qrcode-generator library (loaded dynamically)
   _drawQR(syncUrl);
+
+  const parts = [];
+  if (document.getElementById('qr-inc-keys')?.checked)      parts.push('API keys');
+  if (document.getElementById('qr-inc-profile')?.checked)   parts.push('perfil');
+  if (document.getElementById('qr-inc-sheets')?.checked)    parts.push('Sheets');
+  if (document.getElementById('qr-inc-templates')?.checked) parts.push('plantillas');
+
+  statusEl.innerHTML =
+    '✅ <strong>QR listo.</strong> Incluye: ' + parts.join(', ') + '<br>' +
+    '<span style="font-size:.75rem;color:var(--text-dim)">Escanea con la cámara del móvil — se abrirá la app con todo configurado automáticamente.</span>';
 }
 
 function _drawQR(text) {
@@ -18948,11 +19344,11 @@ function downloadQR() {
 
 // ── AUTO-ACTIVACIÓN al escanear el QR ─────────────────────────────────────
 (function detectAndApplySync() {
+  // Soporte legacy: parámetro ?vfsync= en URL (app en servidor)
   const params = new URLSearchParams(location.search);
   const raw = params.get('vfsync');
   if (!raw) return;
 
-  // Clean URL immediately
   history.replaceState(null, '', location.pathname);
 
   try {
@@ -19677,7 +20073,7 @@ const GUARDIAN = {
     'applyInboxMatch','applyInboxMatches','applyLightMode','applyPatch',
     'applySearchHistory','applySequenceRule','archiveLead','autoWeeklyBackup',
     'buildEmailThread','buildGoldenProfile','buildSearchGrid','buildSignalCorrelation',
-    'callGeminiAPI','calculateScore','cleanObsoleteLeads','clearAllLeads',
+    'callGeminiAPI','saveGroqKey','saveOpenRouterKey','refreshAiRouterStatus','calculateScore','cleanObsoleteLeads','clearAllLeads',
     'closeBriefingModal','closeDrawer','closeFocusMode','closeLead',
     'closeScanModal','closeVoiceModal','copyEmail','copySubjectOption','createLeadFromInbox','openWhatsAppModal','closeWaModal','generateWhatsAppMessage','generateContactCalendar','applyContactCalendar','showPainPicker','confirmPainAndGenerate','skipPainPicker',
     'ctxSetStatus','deleteLead','dragStart','drawerNav',
@@ -20146,5 +20542,469 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 })();
+
+
+
+// ══════════════════════════════════════════════════════════════════
+// MEJORA A — AUTOSAVE DEL FORMULARIO DE NUEVO LEAD
+// ══════════════════════════════════════════════════════════════════
+
+const DRAFT_KEY = 'gordi_lead_form_draft';
+let _autosaveTimer = null;
+let _autosaveLastSaved = null;
+
+const DRAFT_FIELDS = [
+  'lead-name','lead-company','lead-email','lead-phone',
+  'lead-segment','lead-role','lead-size','lead-website',
+  'lead-signal','lead-notes','lead-budget','lead-next-contact','lead-tags'
+];
+
+function saveLeadFormDraft() {
+  const draft = {};
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) draft[id] = el.value;
+  });
+  // Solo guardar si hay algo escrito
+  const hasContent = Object.values(draft).some(v => v && v.trim());
+  if (!hasContent) return;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ data: draft, ts: Date.now() }));
+  _autosaveLastSaved = Date.now();
+  const ind = document.getElementById('autosave-indicator');
+  const txt = document.getElementById('autosave-text');
+  if (ind && txt) {
+    ind.style.display = 'inline';
+    txt.textContent = 'Borrador guardado';
+    ind.style.color = 'var(--success)';
+    setTimeout(() => { if (ind) ind.style.color = 'var(--text-dim)'; }, 2000);
+  }
+}
+
+function restoreLeadFormDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return;
+    const { data, ts } = JSON.parse(raw);
+    // Ignorar borradores de más de 24h
+    if (Date.now() - ts > 24 * 3600 * 1000) { localStorage.removeItem(DRAFT_KEY); return; }
+    const mins = Math.round((Date.now() - ts) / 60000);
+    const label = mins < 1 ? 'hace un momento' : mins === 1 ? 'hace 1 min' : `hace ${mins} min`;
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && data[id]) el.value = data[id];
+    });
+    const ind = document.getElementById('autosave-indicator');
+    const txt = document.getElementById('autosave-text');
+    if (ind && txt) {
+      ind.style.display = 'inline';
+      txt.textContent = `Borrador restaurado (${label})`;
+      ind.style.color = 'var(--primary)';
+      setTimeout(() => { if (txt) txt.textContent = 'Borrador guardado'; if (ind) ind.style.color = 'var(--text-dim)'; }, 4000);
+    }
+  } catch(e) {}
+}
+
+function clearLeadFormDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+  const ind = document.getElementById('autosave-indicator');
+  if (ind) ind.style.display = 'none';
+}
+
+function startLeadFormAutosave() {
+  stopLeadFormAutosave();
+  // Guardar al escribir (debounced 2s)
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', _debouncedDraftSave);
+    el.addEventListener('change', _debouncedDraftSave);
+  });
+  // También guardar cada 30s
+  _autosaveTimer = setInterval(saveLeadFormDraft, 30000);
+}
+
+function stopLeadFormAutosave() {
+  clearInterval(_autosaveTimer);
+  DRAFT_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.removeEventListener('input', _debouncedDraftSave);
+      el.removeEventListener('change', _debouncedDraftSave);
+    }
+  });
+}
+
+let _draftDebounce = null;
+function _debouncedDraftSave() {
+  clearTimeout(_draftDebounce);
+  _draftDebounce = setTimeout(saveLeadFormDraft, 1500);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEJORA B — BULK APPLY STATUS (función para el nuevo dropdown)
+// ══════════════════════════════════════════════════════════════════
+
+function bulkApplyStatus() {
+  const sel = document.getElementById('bulk-status-select');
+  const newStatus = sel?.value;
+  if (!newStatus) { showToast('⚠️ Selecciona un estado primero'); return; }
+  if (!selectedLeadIds.size) { showToast('⚠️ No hay leads seleccionados'); return; }
+  bulkChangeStatus(newStatus);
+  if (sel) sel.value = '';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// MEJORA C — DETECCIÓN DE DUPLICADOS EN IMPORTACIÓN
+// ══════════════════════════════════════════════════════════════════
+
+function detectImportDuplicates(importLeads) {
+  const dupes = [];
+
+  importLeads.forEach((imp, idx) => {
+    const matches = [];
+
+    leads.filter(l => !l.archived).forEach(existing => {
+      // Match por email exacto
+      if (imp.email && existing.email &&
+          imp.email.toLowerCase().trim() === existing.email.toLowerCase().trim()) {
+        matches.push({ existing, reason: `email igual: ${existing.email}` });
+        return;
+      }
+      // Match por nombre de empresa (normalizado)
+      const normImp = (imp.company||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      const normEx  = (existing.company||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+      if (normImp.length >= 4 && normEx.length >= 4 && normImp === normEx) {
+        matches.push({ existing, reason: `empresa igual: ${existing.company}` });
+        return;
+      }
+      // Match por similitud de nombre empresa (>85% caracteres comunes)
+      if (normImp.length >= 5 && normEx.length >= 5) {
+        const shorter = normImp.length < normEx.length ? normImp : normEx;
+        const longer  = normImp.length < normEx.length ? normEx  : normImp;
+        let common = 0;
+        for (const ch of shorter) { if (longer.includes(ch)) common++; }
+        if (common / longer.length > 0.85) {
+          matches.push({ existing, reason: `empresa similar: "${existing.company}"` });
+        }
+      }
+    });
+
+    if (matches.length) dupes.push({ idx, imp, matches: matches.slice(0,2) });
+  });
+
+  return dupes;
+}
+
+function renderImportDuplicatesPanel(dupes) {
+  const panel = document.getElementById('import-duplicates-panel');
+  const list  = document.getElementById('import-duplicates-list');
+  const badge = document.getElementById('dup-count-badge');
+  if (!panel || !list) return;
+
+  if (!dupes.length) { panel.style.display = 'none'; return; }
+
+  badge.textContent = dupes.length + ' posible' + (dupes.length > 1 ? 's' : '');
+  list.innerHTML = dupes.map(({ idx, imp, matches }) => {
+    const m = matches[0];
+    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem .4rem;background:rgba(245,158,11,.06);border-radius:6px;font-size:.75rem">
+      <span style="color:var(--warning)">⚠️</span>
+      <span style="flex:1"><strong>${imp.company}</strong> — ${m.reason}</span>
+      <button onclick="deselImportRow(${idx})" style="background:rgba(245,158,11,.2);border:1px solid rgba(245,158,11,.3);border-radius:5px;padding:1px 8px;font-size:.7rem;cursor:pointer;color:var(--warning);white-space:nowrap">Desmarcar</button>
+    </div>`;
+  }).join('');
+
+  panel.style.display = 'block';
+}
+
+function deselImportRow(idx) {
+  // Desmarcar el checkbox de esa fila en la tabla de preview
+  const cb = document.querySelector(`.import-check[data-index="${idx}"]`);
+  if (cb) { cb.checked = false; }
+  // Quitar ese item del panel de duplicados
+  const dupeItems = document.querySelectorAll('#import-duplicates-list > div');
+  dupeItems.forEach(el => {
+    if (el.innerHTML.includes(`deselImportRow(${idx})`)) el.remove();
+  });
+  const remaining = document.querySelectorAll('#import-duplicates-list > div').length;
+  if (!remaining) document.getElementById('import-duplicates-panel').style.display = 'none';
+  else document.getElementById('dup-count-badge').textContent = remaining + ' posible' + (remaining > 1 ? 's' : '');
+}
+
+
+// ══════════════════════════════════════════════════════════════════
+// EMAILJS — MÉTODO SIMPLIFICADO DE ALERTAS
+// ══════════════════════════════════════════════════════════════════
+
+function selectEmailMethod(method) {
+  const ejsPanel   = document.getElementById('emailjs-setup');
+  const gmailPanel = document.getElementById('gmail-oauth-setup');
+  const ejsBtn     = document.getElementById('method-btn-emailjs');
+  const gmailBtn   = document.getElementById('method-btn-gmail');
+  if (!ejsPanel || !gmailPanel) return;
+
+  if (method === 'emailjs') {
+    ejsPanel.style.display   = 'block';
+    gmailPanel.style.display = 'none';
+    ejsBtn.style.borderColor   = 'var(--primary)';
+    ejsBtn.style.background    = 'rgba(10,132,255,.1)';
+    ejsBtn.style.color         = 'var(--primary)';
+    gmailBtn.style.borderColor = 'var(--glass-border)';
+    gmailBtn.style.background  = 'var(--glass)';
+    gmailBtn.style.color       = 'var(--text-muted)';
+  } else {
+    ejsPanel.style.display   = 'none';
+    gmailPanel.style.display = 'block';
+    gmailBtn.style.borderColor = 'var(--primary)';
+    gmailBtn.style.background  = 'rgba(10,132,255,.1)';
+    gmailBtn.style.color       = 'var(--primary)';
+    ejsBtn.style.borderColor   = 'var(--glass-border)';
+    ejsBtn.style.background    = 'var(--glass)';
+    ejsBtn.style.color         = 'var(--text-muted)';
+  }
+}
+
+function saveEmailJsConfig() {
+  const toEmail    = document.getElementById('ejs-to-email')?.value.trim();
+  const serviceId  = document.getElementById('ejs-service-id')?.value.trim();
+  const templateId = document.getElementById('ejs-template-id')?.value.trim();
+  const publicKey  = document.getElementById('ejs-public-key')?.value.trim();
+  const statusEl   = document.getElementById('ejs-status');
+
+  if (!toEmail || !serviceId || !templateId || !publicKey) {
+    if (statusEl) { statusEl.textContent = '⚠️ Rellena todos los campos'; statusEl.style.color = 'var(--danger)'; }
+    return;
+  }
+  localStorage.setItem('gordi_ejs_to',       toEmail);
+  localStorage.setItem('gordi_ejs_service',  serviceId);
+  localStorage.setItem('gordi_ejs_template', templateId);
+  localStorage.setItem('gordi_ejs_key',      publicKey);
+  localStorage.setItem('gordi_gmail_email',  toEmail); // compatibilidad
+  localStorage.setItem('gordi_email_method', 'emailjs');
+
+  // Inicializar EmailJS
+  if (window.emailjs) emailjs.init({ publicKey });
+
+  if (statusEl) { statusEl.textContent = '✅ Guardado — enviando prueba...'; statusEl.style.color = 'var(--success)'; }
+  updateEmailAlertsConnectedBadge();
+  testEmailJsAlert();
+}
+
+async function testEmailJsAlert() {
+  const ok = await sendEmailJsAlert('🤖 Voltflow — Test de alertas', 'Las alertas automáticas funcionan correctamente. Recibirás emails cuando el agente detecte leads urgentes.');
+  const statusEl = document.getElementById('ejs-status');
+  if (statusEl) {
+    statusEl.textContent = ok ? '✅ Email enviado — revisa tu bandeja' : '❌ Error — verifica los datos';
+    statusEl.style.color = ok ? 'var(--success)' : 'var(--danger)';
+  }
+}
+
+async function sendEmailJsAlert(subject, message) {
+  const method = localStorage.getItem('gordi_email_method') || 'gmail';
+
+  // Método EmailJS
+  if (method === 'emailjs') {
+    const serviceId  = localStorage.getItem('gordi_ejs_service');
+    const templateId = localStorage.getItem('gordi_ejs_template');
+    const publicKey  = localStorage.getItem('gordi_ejs_key');
+    const toEmail    = localStorage.getItem('gordi_ejs_to');
+    if (!serviceId || !templateId || !publicKey || !toEmail) return false;
+    try {
+      if (window.emailjs) {
+        emailjs.init({ publicKey });
+        const result = await emailjs.send(serviceId, templateId, {
+          to_email: toEmail,
+          subject,
+          message,
+          from_name: 'Voltflow CRM',
+        });
+        return result.status === 200;
+      }
+    } catch(e) { console.error('EmailJS error:', e); return false; }
+  }
+
+  // Fallback: método Gmail OAuth original
+  return await sendGmailAlert(subject, `<div style="font-family:sans-serif;padding:16px"><h3>${subject}</h3><p>${message}</p></div>`);
+}
+
+function updateEmailAlertsConnectedBadge() {
+  const badge = document.getElementById('email-alerts-connected-badge');
+  if (!badge) return;
+  const ejsOk   = !!(localStorage.getItem('gordi_ejs_service') && localStorage.getItem('gordi_ejs_key'));
+  const gmailOk = !!(localStorage.getItem('gordi_gmail_token'));
+  badge.style.display = (ejsOk || gmailOk) ? 'inline' : 'none';
+}
+
+// Cargar estado al iniciar la sección de config
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    // Rellenar campos EmailJS si ya estaban guardados
+    const ejsTo  = localStorage.getItem('gordi_ejs_to');
+    const ejsSvc = localStorage.getItem('gordi_ejs_service');
+    const ejsTpl = localStorage.getItem('gordi_ejs_template');
+    const ejsKey = localStorage.getItem('gordi_ejs_key');
+    if (ejsTo  && document.getElementById('ejs-to-email'))    document.getElementById('ejs-to-email').value    = ejsTo;
+    if (ejsSvc && document.getElementById('ejs-service-id'))  document.getElementById('ejs-service-id').value  = ejsSvc;
+    if (ejsTpl && document.getElementById('ejs-template-id')) document.getElementById('ejs-template-id').value = ejsTpl;
+    if (ejsKey && document.getElementById('ejs-public-key'))  document.getElementById('ejs-public-key').value  = ejsKey;
+    if (ejsKey && window.emailjs) emailjs.init({ publicKey: ejsKey });
+    updateEmailAlertsConnectedBadge();
+    // Si el método guardado era gmail, mostrar ese panel
+    if (localStorage.getItem('gordi_email_method') === 'gmail') selectEmailMethod('gmail');
+  }, 600);
+});
+
+// Parchear sendGmailAlert para que use EmailJS si está configurado
+const _origSendGmailAlert = sendGmailAlert;
+window.sendGmailAlert = async function(subject, htmlBody) {
+  const method = localStorage.getItem('gordi_email_method');
+  if (method === 'emailjs') {
+    const text = htmlBody.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return await sendEmailJsAlert(subject, text);
+  }
+  return await _origSendGmailAlert(subject, htmlBody);
+};
+
+
+// ══════════════════════════════════════════════════════════════════
+// QR SYNC — IMPORTAR QR CON CÁMARA (jsQR library)
+// ══════════════════════════════════════════════════════════════════
+
+function openQRImportScanner() {
+  // Crear modal con preview de cámara
+  const existing = document.getElementById('qr-scanner-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'qr-scanner-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:1.5rem;max-width:360px;width:100%;text-align:center">
+      <div style="font-size:1.1rem;font-weight:700;margin-bottom:.75rem">📷 Escanear QR de Voltflow</div>
+      <div style="position:relative;border-radius:12px;overflow:hidden;background:#000;margin-bottom:1rem">
+        <video id="qr-video" style="width:100%;max-height:260px;object-fit:cover;display:block" playsinline autoplay></video>
+        <canvas id="qr-scan-canvas" style="display:none"></canvas>
+        <div style="position:absolute;inset:0;border:3px solid var(--primary);border-radius:12px;pointer-events:none;box-shadow:0 0 0 9999px rgba(0,0,0,.3) inset"></div>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:140px;height:140px;border:2px solid #fff;border-radius:8px;pointer-events:none;opacity:.6"></div>
+      </div>
+      <div id="qr-scan-status" style="font-size:.8rem;color:var(--text-muted);margin-bottom:1rem;min-height:2.5rem;line-height:1.5">Apunta la cámara al código QR de Voltflow</div>
+      <button onclick="closeQRScanner()" style="background:var(--glass);border:1px solid var(--glass-border);border-radius:8px;padding:.5rem 1.5rem;color:var(--text);cursor:pointer;font-size:.85rem">Cancelar</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Cargar jsQR si no está cargado
+  if (typeof jsQR === 'undefined') {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+    s.onload = () => startQRScanner();
+    s.onerror = () => {
+      document.getElementById('qr-scan-status').textContent = '❌ No se pudo cargar el escáner. Usa Chrome o Safari actualizados.';
+    };
+    document.head.appendChild(s);
+  } else {
+    startQRScanner();
+  }
+}
+
+let _qrScanInterval = null;
+
+function startQRScanner() {
+  const video  = document.getElementById('qr-video');
+  const canvas = document.getElementById('qr-scan-canvas');
+  const status = document.getElementById('qr-scan-status');
+  if (!video || !canvas) return;
+
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(stream => {
+      video.srcObject = stream;
+      video.play();
+      _qrScanInterval = setInterval(() => {
+        if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+        canvas.width  = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'dontInvert' });
+        if (code) {
+          clearInterval(_qrScanInterval);
+          stopQRScannerStream();
+          processScannedQRData(code.data);
+        }
+      }, 200);
+    })
+    .catch(err => {
+      if (status) status.innerHTML = '❌ Sin acceso a la cámara.<br><span style="font-size:.72rem">Permite el acceso a la cámara en tu navegador e inténtalo de nuevo.</span>';
+    });
+}
+
+function stopQRScannerStream() {
+  const video = document.getElementById('qr-video');
+  if (video?.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+  clearInterval(_qrScanInterval);
+}
+
+function closeQRScanner() {
+  stopQRScannerStream();
+  const modal = document.getElementById('qr-scanner-modal');
+  if (modal) modal.remove();
+}
+
+function processScannedQRData(data) {
+  const statusEl = document.getElementById('qr-scan-status');
+
+  if (!data.startsWith('VOLTFLOW:')) {
+    if (statusEl) statusEl.innerHTML = '⚠️ Este QR no es de Voltflow. Escanea el código generado en Configuración → QR Sync.';
+    // Reiniciar escaneo tras 2s
+    setTimeout(startQRScanner, 2000);
+    return;
+  }
+
+  try {
+    const encoded = data.slice('VOLTFLOW:'.length);
+    const payload = JSON.parse(decodeURIComponent(escape(atob(encoded))));
+
+    if (payload.exp && Date.now() > payload.exp) {
+      if (statusEl) statusEl.innerHTML = '⏰ Este QR ha caducado. Genera uno nuevo desde el dispositivo original.';
+      setTimeout(closeQRScanner, 3000);
+      return;
+    }
+
+    closeQRScanner();
+    applyVoltflowPayload(payload);
+
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '❌ QR inválido o corrupto.';
+    setTimeout(closeQRScanner, 2000);
+  }
+}
+
+function applyVoltflowPayload(payload) {
+  let applied = [];
+
+  if (payload.keys) {
+    const map = { g:'gordi_api_key', h:'gordi_hunter_key', a:'gordi_apollo_key', ge:'gordi_gemini_key', cl:'gordi_claude_key' };
+    Object.entries(payload.keys).forEach(([k,v]) => { if (v && map[k]) localStorage.setItem(map[k], v); });
+    applied.push('🔑 API keys');
+  }
+  if (payload.profile) {
+    const map = { n:'gordi_user_name', e:'gordi_user_email', co:'gordi_user_company', p:'gordi_user_phone', w:'gordi_user_web' };
+    Object.entries(payload.profile).forEach(([k,v]) => { if (v && map[k]) localStorage.setItem(map[k], v); });
+    applied.push('👤 perfil');
+  }
+  if (payload.sheets) {
+    if (payload.sheets.id)  localStorage.setItem('gordi_sheets_id', payload.sheets.id);
+    if (payload.sheets.cid) localStorage.setItem('gordi_sheets_client_id', payload.sheets.cid);
+    applied.push('📊 Sheets');
+  }
+  if (payload.templates) {
+    try { localStorage.setItem('gordi_templates', payload.templates); applied.push('✉ plantillas'); } catch {}
+  }
+
+  showToast('✅ Configuración importada: ' + applied.join(', '));
+  setTimeout(() => location.reload(), 1200);
+}
 
 </script>
